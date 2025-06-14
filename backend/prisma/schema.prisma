@@ -1,0 +1,200 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Fear & Greed Index 일일 데이터
+model FearGreedIndex {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique @db.Date
+  value     Int      // 0-100 범위의 지수 값
+  level     String   // "Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"
+  confidence Int     // 신뢰도 (0-100)
+  
+  // 구성 요소별 값들 (0-100 범위)
+  priceMomentum     Int // 주가 모멘텀
+  investorSentiment Int // 투자자 심리
+  putCallRatio      Int // 풋/콜 비율
+  volatilityIndex   Int // 변동성 지수
+  safeHavenDemand   Int // 안전자산 수요
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("fear_greed_index")
+}
+
+// KOSPI 일일 데이터 (KRX Collector 데이터 구조에 맞춤)
+model KospiData {
+  id            Int      @id @default(autoincrement())
+  date          DateTime @unique @db.Date
+  index         Decimal  @db.Decimal(10, 2) // 지수 값
+  change        Decimal  @db.Decimal(10, 2) // 전일 대비 변화
+  changePercent Decimal  @db.Decimal(5, 2)  // 변화율 (%)
+  volume        BigInt   // 거래량
+  value         BigInt   // 거래대금
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("kospi_data")
+}
+
+// KOSDAQ 일일 데이터
+model KosdaqData {
+  id            Int      @id @default(autoincrement())
+  date          DateTime @unique @db.Date
+  openPrice     Decimal  @db.Decimal(10, 2)
+  closePrice    Decimal  @db.Decimal(10, 2)
+  highPrice     Decimal  @db.Decimal(10, 2)
+  lowPrice      Decimal  @db.Decimal(10, 2)
+  volume        BigInt
+  marketCap     BigInt?
+  change        Decimal  @db.Decimal(10, 2)
+  changePercent Decimal  @db.Decimal(5, 2)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("kosdaq_data")
+}
+
+// 투자자별 매매동향 (KRX Collector 구조에 맞춤)
+model InvestorTrading {
+  id                    Int      @id @default(autoincrement())
+  date                  DateTime @unique @db.Date
+  foreignBuying         BigInt   // 외국인 매수
+  foreignSelling        BigInt   // 외국인 매도
+  individualBuying      BigInt   // 개인 매수
+  individualSelling     BigInt   // 개인 매도
+  institutionalBuying   BigInt   // 기관 매수
+  institutionalSelling  BigInt   // 기관 매도
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("investor_trading")
+}
+
+// 옵션 데이터 (Put/Call 비율)
+model OptionData {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @unique @db.Date
+  putVolume    BigInt   // Put 옵션 거래량
+  callVolume   BigInt   // Call 옵션 거래량
+  putCallRatio Decimal  @db.Decimal(8, 4) // Put/Call 비율
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("option_data")
+}
+
+// 금리 데이터 (BOK Collector)
+model InterestRateData {
+  id              Int      @id @default(autoincrement())
+  date            DateTime @unique @db.Date
+  baseRate        Decimal  @db.Decimal(5, 2) // 기준금리
+  callRate        Decimal  @db.Decimal(5, 2) // 콜금리
+  cd91Rate        Decimal  @db.Decimal(5, 2) // CD 91일
+  treasuryBond3Y  Decimal  @db.Decimal(5, 2) // 국고채 3년
+  treasuryBond10Y Decimal  @db.Decimal(5, 2) // 국고채 10년
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("interest_rate_data")
+}
+
+// 환율 데이터 (BOK Collector)
+model ExchangeRateData {
+  id      Int      @id @default(autoincrement())
+  date    DateTime @unique @db.Date
+  usdKrw  Decimal  @db.Decimal(8, 2) // USD/KRW
+  eurKrw  Decimal  @db.Decimal(8, 2) // EUR/KRW
+  jpyKrw  Decimal  @db.Decimal(8, 4) // JPY/KRW (100엔당)
+  cnyKrw  Decimal  @db.Decimal(8, 4) // CNY/KRW
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("exchange_rate_data")
+}
+
+// 경제지표 데이터 (BOK Collector)
+model EconomicIndicatorData {
+  id               Int      @id @default(autoincrement())
+  date             DateTime @unique @db.Date
+  cpi              Decimal? @db.Decimal(5, 2) // 소비자물가지수
+  ppi              Decimal? @db.Decimal(5, 2) // 생산자물가지수
+  unemploymentRate Decimal? @db.Decimal(4, 2) // 실업률
+  gdpGrowthRate    Decimal? @db.Decimal(5, 2) // GDP 성장률
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("economic_indicator_data")
+}
+
+// VKOSPI 변동성 지수
+model VkospiData {
+  id    Int      @id @default(autoincrement())
+  date  DateTime @unique @db.Date
+  value Decimal  @db.Decimal(5, 2) // VKOSPI 값
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("vkospi_data")
+}
+
+// 국채 수익률 커브 데이터
+model BondYieldCurveData {
+  id       Int      @id @default(autoincrement())
+  date     DateTime @unique @db.Date
+  yield1Y  Decimal? @db.Decimal(5, 2) // 1년 국고채
+  yield3Y  Decimal? @db.Decimal(5, 2) // 3년 국고채
+  yield5Y  Decimal? @db.Decimal(5, 2) // 5년 국고채
+  yield10Y Decimal? @db.Decimal(5, 2) // 10년 국고채
+  yield20Y Decimal? @db.Decimal(5, 2) // 20년 국고채
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("bond_yield_curve_data")
+}
+
+// 데이터 수집 로그
+model DataCollectionLog {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @db.Date
+  source       String   // "KRX", "BOK"
+  dataType     String   // "KOSPI", "TRADING", "OPTIONS", "INTEREST_RATES", "EXCHANGE_RATES", "ECONOMIC_INDICATORS"
+  status       String   // "SUCCESS", "FAILED", "PARTIAL"
+  recordCount  Int?     // 수집된 레코드 수
+  errorMessage String?  @db.Text
+  duration     Int?     // 수집 소요 시간 (ms)
+  
+  createdAt DateTime @default(now())
+  
+  @@map("data_collection_log")
+}
+
+// 시스템 설정
+model SystemConfig {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String @db.Text
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("system_config")
+} 

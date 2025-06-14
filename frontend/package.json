@@ -1,0 +1,54 @@
+{
+  "name": "kospi-fg-index-frontend",
+  "version": "1.0.0",
+  "description": "KOSPI Fear & Greed Index Frontend",
+  "productName": "KOSPI Fear & Greed Index",
+  "author": "Your Name",
+  "private": true,
+  "scripts": {
+    "dev": "dotenv -e .env -- vite",
+    "build": "dotenv -e .env -- vite build",
+    "preview": "dotenv -e .env -- vite preview",
+    "lint": "eslint --ext .js,.ts,.vue ./",
+    "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "vue": "^3.3.8",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "@quasar/extras": "^1.16.8",
+    "quasar": "^2.14.1",
+    "chart.js": "^4.4.0",
+    "vue-chartjs": "^5.2.0",
+    "@vueuse/core": "^10.7.0",
+    "axios": "^1.6.2",
+    "date-fns": "^3.0.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@quasar/vite-plugin": "^1.7.0",
+    "vite": "^5.0.10",
+    "@types/node": "^20.10.5",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vue/eslint-config-typescript": "^12.0.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-vue": "^9.19.2",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0",
+    "@vitest/ui": "^1.1.0",
+    "c8": "^8.0.1",
+    "sass": "^1.69.5",
+    "dotenv-cli": "^7.0.0"
+  },
+  "engines": {
+    "node": "^18 || ^16 || ^14.19",
+    "npm": ">= 6.13.4",
+    "yarn": ">= 1.21.1"
+  }
+} 
