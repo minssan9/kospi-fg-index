@@ -94,7 +94,11 @@ try {
     const lastBusinessDay = new Date(today)
     lastBusinessDay.setDate(today.getDate() - daysToSubtract)
     
-    return lastBusinessDay.toISOString().split('T')[0]
+    try {
+      return lastBusinessDay.toISOString().split('T')[0] ?? ''
+    } catch {
+      return ''
+    }
   }
   
   const lastBusinessDay = getLastBusinessDay()

@@ -494,6 +494,15 @@ export class DatabaseService {
   }
 
   /**
+   * 최신 KOSDAQ 데이터 조회
+   */
+  static async getLatestKOSDAQData() {
+    return await prisma.kosdaqData.findFirst({
+      orderBy: { date: 'desc' }
+    });
+  }
+
+  /**
    * 데이터 수집 상태 조회
    */
   static async getDataCollectionStatus(days: number = 7) {

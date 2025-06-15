@@ -1,4 +1,5 @@
 # Node modules and lock files
+dist/
 node_modules/
 package-lock.json
 backend/node_modules/

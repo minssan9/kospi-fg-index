@@ -33,12 +33,12 @@ router.get('/current', async (req: Request, res: Response) => {
     if (!latest) {
       return res.status(404).json({ success: false, message: 'Fear & Greed Index 데이터가 없습니다.' });
     }
-    res.json({
+    return res.json({
       success: true,
       data: {
         value: latest.value,
         level: latest.level,
-        date: latest.date.toISOString().split('T')[0],
+        date: latest.date ? latest.date.toISOString().split('T')[0] : '',
         components: {
           priceMomentum: latest.priceMomentum,
           investorSentiment: latest.investorSentiment,
@@ -50,7 +50,7 @@ router.get('/current', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 

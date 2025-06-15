@@ -11,16 +11,16 @@ dotenv.config();
 
 // 라우터 import
 import apiRoutes from './routes/api';
-// import fearGreedRoutes from './routes/fearGreed';
-// import dataRoutes from './routes/data';
+import fearGreedRoutes from './routes/fearGreed';
+import dataRoutes from './routes/data';
 
 // 미들웨어 import
 import { errorHandler } from './middleware/errorHandler';
-// import { rateLimiter } from './middleware/rateLimiter';
-// import { requestLogger } from './middleware/logger';
+import { rateLimiter } from './middleware/rateLimiter';
+import { requestLogger } from './middleware/logger';
 
 // 유틸리티 import
-// import { logger } from './utils/logger';
+import { logger } from './utils/logger';
 import { startDataCollectionScheduler } from './services/scheduler';
 
 const app = express();
@@ -55,10 +55,10 @@ if (process.env.NODE_ENV !== 'test') {
     }
   }));
 }
-// app.use(requestLogger);
+app.use(requestLogger);
 
 // Rate limiting
-// app.use(rateLimiter);
+app.use(rateLimiter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -72,8 +72,8 @@ app.get('/health', (req, res) => {
 
 // API 라우트
 app.use('/api', apiRoutes);
-// app.use('/api/fear-greed', fearGreedRoutes);
-// app.use('/api/data', dataRoutes);
+app.use('/api/fear-greed', fearGreedRoutes);
+app.use('/api/data', dataRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {

@@ -1,50 +1,87 @@
 import { Router, Request, Response } from 'express';
+import { DatabaseService } from '../services/databaseService';
 
 const router = Router();
 
-// 샘플 시장 데이터
-const sampleMarketData = {
-  kospi: {
-    current: 2485.67,
-    change: -12.45,
-    changePercent: -0.50,
-    volume: 567890123,
-    marketCap: 1234567890000
-  },
-  kosdaq: {
-    current: 742.89,
-    change: 5.23,
-    changePercent: 0.71,
-    volume: 234567890,
-    marketCap: 456789012000
-  }
-};
-
 // KOSPI 지수 데이터 조회
-router.get('/kospi', (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: sampleMarketData.kospi,
-    timestamp: new Date().toISOString()
-  });
+router.get('/kospi', async (req: Request, res: Response) => {
+  try {
+    const kospi = await DatabaseService.getLatestKOSPIData();
+    if (!kospi) {
+      return res.status(404).json({ success: false, message: 'KOSPI 데이터가 없습니다.' });
+    }
+    res.json({
+      success: true,
+      data: {
+        current: parseFloat(kospi.index.toString()),
+        change: parseFloat(kospi.change.toString()),
+        changePercent: parseFloat(kospi.changePercent.toString()),
+        volume: Number(kospi.volume),
+        marketCap: Number(kospi.value)
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
 });
 
 // KOSDAQ 지수 데이터 조회
-router.get('/kosdaq', (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: sampleMarketData.kosdaq,
-    timestamp: new Date().toISOString()
-  });
+router.get('/kosdaq', async (req: Request, res: Response) => {
+  try {
+    const kosdaq = await DatabaseService.getLatestKOSDAQData();
+    if (!kosdaq) {
+      return res.status(404).json({ success: false, message: 'KOSDAQ 데이터가 없습니다.' });
+    }
+    res.json({
+      success: true,
+      data: {
+        current: parseFloat(kosdaq.closePrice.toString()),
+        change: parseFloat(kosdaq.change.toString()),
+        changePercent: parseFloat(kosdaq.changePercent.toString()),
+        volume: Number(kosdaq.volume),
+        marketCap: kosdaq.marketCap ? Number(kosdaq.marketCap) : null
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
 });
 
 // 전체 시장 데이터 조회
-router.get('/market', (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: sampleMarketData,
-    timestamp: new Date().toISOString()
-  });
+router.get('/market', async (req: Request, res: Response) => {
+  try {
+    const [kospi, kosdaq] = await Promise.all([
+      DatabaseService.getLatestKOSPIData(),
+      DatabaseService.getLatestKOSDAQData()
+    ]);
+    if (!kospi && !kosdaq) {
+      return res.status(404).json({ success: false, message: '시장 데이터가 없습니다.' });
+    }
+    res.json({
+      success: true,
+      data: {
+        kospi: kospi ? {
+          current: parseFloat(kospi.index.toString()),
+          change: parseFloat(kospi.change.toString()),
+          changePercent: parseFloat(kospi.changePercent.toString()),
+          volume: Number(kospi.volume),
+          marketCap: Number(kospi.value)
+        } : null,
+        kosdaq: kosdaq ? {
+          current: parseFloat(kosdaq.closePrice.toString()),
+          change: parseFloat(kosdaq.change.toString()),
+          changePercent: parseFloat(kosdaq.changePercent.toString()),
+          volume: Number(kosdaq.volume),
+          marketCap: kosdaq.marketCap ? Number(kosdaq.marketCap) : null
+        } : null
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
 });
 
 export default router; 
