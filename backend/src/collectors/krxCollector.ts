@@ -77,7 +77,7 @@ export class KRXCollector {
       return null
 
     } catch (error) {
-      console.error(`[KRX] KOSPI 데이터 수집 실패 (${date}):`, error)
+      console.error(`[KRX] KOSPI 데이터 수집 실패 (${date}):`, (error as any)?.message)
       return null
     }
   }
@@ -136,7 +136,7 @@ export class KRXCollector {
       return null
 
     } catch (error) {
-      console.error(`[KRX] 투자자별 매매동향 수집 실패 (${date}):`, error)
+      console.error(`[KRX] 투자자별 매매동향 수집 실패 (${date}):`, (error as any)?.message)
       return null
     }
   }
@@ -191,7 +191,7 @@ export class KRXCollector {
       return null
 
     } catch (error) {
-      console.error(`[KRX] 옵션 데이터 수집 실패 (${date}):`, error)
+      console.error(`[KRX] 옵션 데이터 수집 실패 (${date}):`, (error as any)?.message)
       return null
     }
   }
@@ -218,7 +218,7 @@ export class KRXCollector {
         results.kospi = await this.fetchKOSPIData(date)
         console.log(`[KRX] KOSPI 데이터 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[KRX] KOSPI 데이터 수집 실패 (${date}):`, error)
+        console.error(`[KRX] KOSPI 데이터 수집 실패 (${date}):`, (error as any)?.message)
       }
 
       // 투자자별 매매동향 수집
@@ -226,7 +226,7 @@ export class KRXCollector {
         results.trading = await this.fetchInvestorTradingData(date)
         console.log(`[KRX] 투자자별 매매동향 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[KRX] 투자자별 매매동향 수집 실패 (${date}):`, error)
+        console.error(`[KRX] 투자자별 매매동향 수집 실패 (${date}):`, (error as any)?.message)
       }
 
       // 옵션 데이터 수집
@@ -234,14 +234,14 @@ export class KRXCollector {
         results.options = await this.fetchOptionData(date)
         console.log(`[KRX] 옵션 데이터 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[KRX] 옵션 데이터 수집 실패 (${date}):`, error)
+        console.error(`[KRX] 옵션 데이터 수집 실패 (${date}):`, (error as any)?.message)
       }
 
       console.log(`[KRX] ${date} 일일 데이터 수집 완료`)
       return results
 
     } catch (error) {
-      console.error(`[KRX] ${date} 일일 데이터 수집 중 오류:`, error)
+      console.error(`[KRX] ${date} 일일 데이터 수집 중 오류:`, (error as any)?.message)
       return results
     }
   }

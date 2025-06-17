@@ -28,7 +28,7 @@ model FearGreedIndex {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("fear_greed_index")
+  @@map("sentiment_fear_greed_index")
 }
 
 // KOSPI 일일 데이터 (KRX Collector 데이터 구조에 맞춤)
@@ -44,7 +44,7 @@ model KospiData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("kospi_data")
+  @@map("market_kospi_data")
 }
 
 // KOSDAQ 일일 데이터
@@ -63,7 +63,7 @@ model KosdaqData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("kosdaq_data")
+  @@map("market_kosdaq_data")
 }
 
 // 투자자별 매매동향 (KRX Collector 구조에 맞춤)
@@ -80,7 +80,7 @@ model InvestorTrading {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("investor_trading")
+  @@map("trading_investor_trading")
 }
 
 // 옵션 데이터 (Put/Call 비율)
@@ -94,7 +94,7 @@ model OptionData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("option_data")
+  @@map("trading_option_data")
 }
 
 // 금리 데이터 (BOK Collector)
@@ -110,7 +110,7 @@ model InterestRateData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("interest_rate_data")
+  @@map("macro_interest_rate_data")
 }
 
 // 환율 데이터 (BOK Collector)
@@ -125,7 +125,7 @@ model ExchangeRateData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("exchange_rate_data")
+  @@map("macro_exchange_rate_data")
 }
 
 // 경제지표 데이터 (BOK Collector)
@@ -140,7 +140,7 @@ model EconomicIndicatorData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("economic_indicator_data")
+  @@map("macro_economic_indicator_data")
 }
 
 // VKOSPI 변동성 지수
@@ -152,7 +152,7 @@ model VkospiData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("vkospi_data")
+  @@map("market_vkospi_data")
 }
 
 // 국채 수익률 커브 데이터
@@ -168,7 +168,7 @@ model BondYieldCurveData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("bond_yield_curve_data")
+  @@map("market_bond_yield_curve_data")
 }
 
 // 데이터 수집 로그
@@ -184,7 +184,7 @@ model DataCollectionLog {
   
   createdAt DateTime @default(now())
   
-  @@map("data_collection_log")
+  @@map("system_data_collection_log")
 }
 
 // 시스템 설정

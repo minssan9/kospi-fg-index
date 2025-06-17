@@ -59,7 +59,7 @@ export class BOKCollector {
       }
 
     } catch (error) {
-      console.error(`[BOK] 금리 데이터 수집 실패 (${date}):`, error)
+      console.error(`[BOK] 금리 데이터 수집 실패 (${date}):`, (error as any)?.message)
       return null
     }
   }
@@ -90,7 +90,7 @@ export class BOKCollector {
       }
 
     } catch (error) {
-      console.error(`[BOK] 환율 데이터 수집 실패 (${date}):`, error)
+      console.error(`[BOK] 환율 데이터 수집 실패 (${date}):`, (error as any)?.message)
       return null
     }
   }
@@ -120,7 +120,7 @@ export class BOKCollector {
       }
 
     } catch (error) {
-      console.error(`[BOK] 경제지표 데이터 수집 실패 (${date}):`, error)
+      console.error(`[BOK] 경제지표 데이터 수집 실패 (${date}):`, (error as any)?.message)
       return null
     }
   }
@@ -129,13 +129,17 @@ export class BOKCollector {
    * 단일 지표 데이터 수집 (BOK ECOS API 공통 함수)
    */
   private static async fetchSingleIndicator(
-    statCode: string, 
-    date: string, 
-    itemCode1 = 'M', 
-    itemCode2 = 'KOR'
+    statCode: string,
+    startDate: string,
+    endDate?: string,
+    cycle: string = 'A', // 주기(년:A, 반년:S, 분기:Q, 월:M, 반월:SM, 일: D)
+    startCount: number = 1,
+    endCount: number = 10,
+    responseType: string = 'json',
+    lang: string = 'kr'
   ): Promise<string | null> {
     try {
-      const url = `${this.BASE_URL}/StatisticSearch/${this.API_KEY}/json/kr/1/1/${statCode}/${itemCode1}/${itemCode2}/${date}/${date}`
+      const url = `${this.BASE_URL}/StatisticSearch/${this.API_KEY}/${responseType}/${lang}/${startCount}/${endCount}/${statCode}/${cycle}/${startDate}/${endDate || startDate}`
       
       const response = await axios.get(url, {
         timeout: this.TIMEOUT,
@@ -155,7 +159,7 @@ export class BOKCollector {
       return null
 
     } catch (error) {
-      console.error(`[BOK] 지표 ${statCode} 수집 실패:`, error)
+      console.error(`[BOK] 지표 ${statCode} 수집 실패:`, (error as any)?.message)
       return null
     }
   }
@@ -182,7 +186,7 @@ export class BOKCollector {
         results.interestRates = await this.fetchInterestRateData(date)
         console.log(`[BOK] 금리 데이터 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[BOK] 금리 데이터 수집 실패 (${date}):`, error)
+        console.error(`[BOK] 금리 데이터 수집 실패 (${date}):`, (error as any)?.message)
       }
 
       // 환율 데이터 수집
@@ -190,7 +194,7 @@ export class BOKCollector {
         results.exchangeRates = await this.fetchExchangeRateData(date)
         console.log(`[BOK] 환율 데이터 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[BOK] 환율 데이터 수집 실패 (${date}):`, error)
+        console.error(`[BOK] 환율 데이터 수집 실패 (${date}):`, (error as any)?.message)
       }
 
       // 경제지표 데이터 수집
@@ -198,14 +202,14 @@ export class BOKCollector {
         results.economicIndicators = await this.fetchEconomicIndicatorData(date)
         console.log(`[BOK] 경제지표 데이터 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[BOK] 경제지표 데이터 수집 실패 (${date}):`, error)
+        console.error(`[BOK] 경제지표 데이터 수집 실패 (${date}):`, (error as any)?.message)
       }
 
       console.log(`[BOK] ${date} 일일 데이터 수집 완료`)
       return results
 
     } catch (error) {
-      console.error(`[BOK] ${date} 일일 데이터 수집 중 오류:`, error)
+      console.error(`[BOK] ${date} 일일 데이터 수집 중 오류:`, (error as any)?.message)
       return results
     }
   }
@@ -223,7 +227,7 @@ export class BOKCollector {
       return vkospiValue ? parseFloat(vkospiValue) : null
 
     } catch (error) {
-      console.error(`[BOK] VKOSPI 데이터 수집 실패 (${date}):`, error)
+      console.error(`[BOK] VKOSPI 데이터 수집 실패 (${date}):`, (error as any)?.message)
       return null
     }
   }
@@ -260,7 +264,7 @@ export class BOKCollector {
       }
 
     } catch (error) {
-      console.error(`[BOK] 국채 수익률 커브 수집 실패 (${date}):`, error)
+      console.error(`[BOK] 국채 수익률 커브 수집 실패 (${date}):`, (error as any)?.message)
       return {
         yield1Y: null,
         yield3Y: null,
@@ -280,7 +284,7 @@ export class BOKCollector {
       const testResult = await this.fetchSingleIndicator('901Y009', testDate)
       return testResult !== null
     } catch (error) {
-      console.error('[BOK] API 키 유효성 검증 실패:', error)
+      console.error('[BOK] API 키 유효성 검증 실패:', (error as any)?.message)
       return false
     }
   }

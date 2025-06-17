@@ -98,7 +98,7 @@ docker-compose up -d collector
 
 The production deployment includes:
 
-### 1. MySQL Database (`kospi-mysql`)
+### 1. MySQL Database (`mysql`)
 - **Port**: 3307 (external), 3306 (internal)
 - **Data**: Persistent volume `mysql_data`
 - **User**: `kospi_user` / `kospi_pass_2024`
@@ -180,7 +180,7 @@ docker-compose ps
 ### Database Access
 ```bash
 # Connect to MySQL
-docker exec -it kospi-mysql mysql -u kospi_user -p kospi_fg_index
+docker exec -it mysql mysql -u kospi_user -p fg_index
 
 # Check tables
 SHOW TABLES;
@@ -234,10 +234,10 @@ git pull origin main
 ### Database Backup
 ```bash
 # Backup database
-docker exec kospi-mysql mysqldump -u root -p kospi_fg_index > backup_$(date +%Y%m%d).sql
+docker exec mysql mysqldump -u root -p fg_index > backup_$(date +%Y%m%d).sql
 
 # Restore database
-docker exec -i kospi-mysql mysql -u root -p kospi_fg_index < backup_20241215.sql
+docker exec -i mysql mysql -u root -p fg_index < backup_20241215.sql
 ```
 
 ### Clean Up

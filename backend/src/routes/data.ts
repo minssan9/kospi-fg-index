@@ -10,7 +10,7 @@ router.get('/kospi', async (req: Request, res: Response) => {
     if (!kospi) {
       return res.status(404).json({ success: false, message: 'KOSPI 데이터가 없습니다.' });
     }
-    res.json({
+    return res.json({
       success: true,
       data: {
         current: parseFloat(kospi.index.toString()),
@@ -22,7 +22,7 @@ router.get('/kospi', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -33,7 +33,7 @@ router.get('/kosdaq', async (req: Request, res: Response) => {
     if (!kosdaq) {
       return res.status(404).json({ success: false, message: 'KOSDAQ 데이터가 없습니다.' });
     }
-    res.json({
+    return res.json({
       success: true,
       data: {
         current: parseFloat(kosdaq.closePrice.toString()),
@@ -45,7 +45,7 @@ router.get('/kosdaq', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -59,7 +59,7 @@ router.get('/market', async (req: Request, res: Response) => {
     if (!kospi && !kosdaq) {
       return res.status(404).json({ success: false, message: '시장 데이터가 없습니다.' });
     }
-    res.json({
+    return res.json({
       success: true,
       data: {
         kospi: kospi ? {
@@ -80,7 +80,7 @@ router.get('/market', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 

@@ -72,7 +72,7 @@ cp .env.example .env
 
 ```env
 # 데이터베이스
-DATABASE_URL="mysql://username:password@localhost:3306/kospi_fg_index"
+DATABASE_URL="mysql://username:password@localhost:3306/fg_index"
 
 # API 키
 BOK_API_KEY="your_bok_api_key_here"
