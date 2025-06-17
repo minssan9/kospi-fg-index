@@ -10,7 +10,7 @@ node --version
 # MySQL 서버 실행 확인 (localhost:3306)
 # - 사용자: root
 # - 비밀번호: admin
-# - 데이터베이스: kospi_fg_index (자동 생성됨)
+# - 데이터베이스: fg_index (자동 생성됨)
 
 # Git으로 프로젝트 클론 (이미 완료된 경우 생략)
 git clone https://github.com/your-username/kospi-fg-index.git
@@ -27,7 +27,7 @@ npm install
 
 # 환경 변수 확인 (.env 파일이 이미 생성됨)
 cat .env
-# DATABASE_URL="mysql://root:admin@localhost:3306/kospi_fg_index"
+# DATABASE_URL="mysql://root:admin@localhost:3306/fg_index"
 
 # 데이터베이스 스키마 생성 (Prisma)
 npx prisma generate
@@ -138,7 +138,7 @@ npx prisma studio
 mysql -h localhost -P 3306 -u root -p
 
 # 데이터베이스 생성 (필요시)
-CREATE DATABASE kospi_fg_index;
+CREATE DATABASE fg_index;
 ```
 
 ### 포트 충돌 시

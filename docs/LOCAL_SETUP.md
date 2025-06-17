@@ -70,44 +70,46 @@ npm install -g @quasar/cli
 
 ## 🗄 데이터베이스 설정
 
-### PostgreSQL 설치 및 설정
+### MySQL 설치 및 설정
 
 #### 방법 1: 직접 설치
 ```bash
 # macOS (Homebrew)
-brew install postgresql@14
-brew services start postgresql@14
+brew install mysql@8.0
+brew services start mysql@8.0
 
 # Ubuntu/Debian
 sudo apt update
-sudo apt install postgresql postgresql-contrib
+sudo apt install mysql-server
 
 # 서비스 시작
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
+sudo systemctl start mysql
+sudo systemctl enable mysql
 ```
 
 #### 방법 2: Docker 사용
 ```bash
-# PostgreSQL Docker 컨테이너 실행
-docker run --name kospi-postgres \
-  -e POSTGRES_DB=kospi_fg_index \
-  -e POSTGRES_USER=kospi_user \
-  -e POSTGRES_PASSWORD=kospi_password \
-  -p 5432:5432 \
-  -d postgres:14
+# MySQL Docker 컨테이너 실행
+docker run --name kospi-mysql \
+  -e MYSQL_DATABASE=fg_index \
+  -e MYSQL_USER=kospi_user \
+  -e MYSQL_PASSWORD=kospi_password \
+  -e MYSQL_ROOT_PASSWORD=root_password \
+  -p 3306:3306 \
+  -d mysql:8.0
 ```
 
 ### 데이터베이스 초기화
 ```bash
-# PostgreSQL 접속
-psql -U postgres
+# MySQL 접속
+mysql -u root -p
 
-# 데이터베이스 생성
-CREATE DATABASE kospi_fg_index;
-CREATE USER kospi_user WITH ENCRYPTED PASSWORD 'kospi_password';
-GRANT ALL PRIVILEGES ON DATABASE kospi_fg_index TO kospi_user;
-\q
+# 데이터베이스 및 사용자 생성
+CREATE DATABASE fg_index CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'kospi_user'@'%' IDENTIFIED BY 'kospi_password';
+GRANT ALL PRIVILEGES ON fg_index.* TO 'kospi_user'@'%';
+FLUSH PRIVILEGES;
+EXIT;
 ```
 
 ## ⚙️ 환경 변수 설정
@@ -122,9 +124,10 @@ PORT=3000
 HOST=localhost
 
 # 데이터베이스 설정
+DB_TYPE=mysql
 DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=kospi_fg_index
+DB_PORT=3306
+DB_NAME=fg_index
 DB_USER=kospi_user
 DB_PASSWORD=kospi_password
 DB_POOL_MIN=2
@@ -380,7 +383,7 @@ docker-compose up -d
 docker-compose logs -f
 
 # 특정 서비스만 실행
-docker-compose up -d postgres
+docker-compose up -d mysql
 docker-compose up -d backend
 docker-compose up -d frontend
 
@@ -417,12 +420,12 @@ kill -9 PID
 
 #### 2. 데이터베이스 연결 오류
 ```bash
-# PostgreSQL 서비스 상태 확인
-brew services list | grep postgresql  # macOS
-sudo systemctl status postgresql      # Linux
+# MySQL 서비스 상태 확인
+brew services list | grep mysql  # macOS
+sudo systemctl status mysql      # Linux
 
 # 연결 테스트
-psql -h localhost -U kospi_user -d kospi_fg_index
+mysql -u kospi_user -p
 ```
 
 #### 3. 패키지 설치 오류
@@ -482,12 +485,12 @@ curl -w "@curl-format.txt" -o /dev/null -s http://localhost:3000/api/health
 node --inspect backend/dist/server.js
 
 # 데이터베이스 성능
-psql -U kospi_user -d kospi_fg_index -c "EXPLAIN ANALYZE SELECT * FROM fear_greed_index;"
+mysql -u kospi_user -p -e "EXPLAIN ANALYZE SELECT * FROM fear_greed_index;"
 ```
 
 ### 개발 도구
 - **Backend**: http://localhost:3000/api-docs (Swagger UI)
-- **Database**: http://localhost:5432 (DBeaver 연결)
+- **Database**: http://localhost:3000 (MySQL 연결)
 - **Redis**: http://localhost:6379 (RedisInsight)
 
 ---
@@ -499,7 +502,7 @@ psql -U kospi_user -d kospi_fg_index -c "EXPLAIN ANALYZE SELECT * FROM fear_gree
 1. **Backend API**: http://localhost:3000/api/health
 2. **Frontend**: http://localhost:8080
 3. **API 문서**: http://localhost:3000/api-docs
-4. **데이터베이스**: PostgreSQL 연결 확인
+4. **데이터베이스**: MySQL 연결 확인
 
 ### 최종 확인 명령어
 ```bash

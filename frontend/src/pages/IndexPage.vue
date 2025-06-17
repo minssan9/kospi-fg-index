@@ -117,7 +117,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { fearGreedApi, type FearGreedIndex, type MarketData } from '../services/api'
+import { fearGreedApi, marketApi, type FearGreedIndex, type MarketData } from '../services/api'
 
 const $q = useQuasar()
 
@@ -196,7 +196,7 @@ async function loadData(): Promise<void> {
     // 병렬로 데이터 로드
     const [indexData, marketInfo] = await Promise.all([
       fearGreedApi.getCurrentIndex(),
-      fearGreedApi.getMarketData()
+      marketApi.getAllMarketData()
     ])
     
     currentIndex.value = indexData
@@ -206,13 +206,7 @@ async function loadData(): Promise<void> {
     error.value = '데이터를 불러오는 중 오류가 발생했습니다.'
     console.error('Failed to load data:', err)
     
-    $q.notify({
-      type: 'negative',
-      message: '데이터 로딩 실패',
-      caption: '잠시 후 다시 시도해주세요.',
-      timeout: 3000,
-      position: 'top'
-    })
+    $q.notify({ type: 'negative', message: '데이터 로딩 실패', caption: '잠시 후 다시 시도해주세요.', timeout: 3000, position: 'top' })
   } finally {
     loading.value = false
     refreshing.value = false
@@ -223,12 +217,7 @@ async function refreshData(): Promise<void> {
   refreshing.value = true
   await loadData()
   
-  $q.notify({
-    type: 'positive',
-    message: '데이터가 업데이트되었습니다.',
-    timeout: 2000,
-    position: 'top'
-  })
+  $q.notify({ type: 'positive', message: '데이터가 업데이트되었습니다.', timeout: 2000, position: 'top' })
 }
 
 // 라이프사이클

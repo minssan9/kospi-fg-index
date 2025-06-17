@@ -8,9 +8,13 @@ declare module '@vue/runtime-core' {
   }
 }
 
+// API 기본 설정
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+
+
 // API 베이스 URL 설정
 const api = axios.create({ 
-  baseURL: process.env.API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

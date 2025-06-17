@@ -29,7 +29,7 @@ KOSPI 시장의 Fear & Greed Index 지표를 일별로 수집, 저장, 시각화
 
 ### Backend (Node.js)
 - [ ] **Framework**: Express.js 또는 Fastify
-- [ ] **Database**: PostgreSQL 또는 MongoDB
+- [ ] **Database**: PostgreSQL 또는 MySQL
 - [ ] **ORM/ODM**: Prisma 또는 Mongoose
 - [ ] **Scheduler**: node-cron
 - [ ] **API Client**: axios
@@ -170,3 +170,18 @@ KOSPI 시장의 Fear & Greed Index 지표를 일별로 수집, 저장, 시각화
 **예상 완료일**: {시작일 + 7주}  
 **담당자**: 개발팀  
 **상태**: 기획 단계 
+
+# 서버 설정
+NODE_ENV=development
+PORT=3000
+HOST=localhost
+
+# 데이터베이스 설정
+DB_TYPE=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=fg_index
+DB_USER=kospi_user
+DB_PASSWORD=kospi_password
+DB_POOL_MIN=2
+DB_POOL_MAX=10 
