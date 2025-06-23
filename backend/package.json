@@ -7,11 +7,9 @@
     "start": "dotenv -e .env -- node dist/server.js",
     "start:prod": "dotenv -e .env.production -- node dist/server.js",
     "start:scheduler": "dotenv -e .env.production -- node -r ts-node/register -e \"require('./src/services/scheduler').startDataCollectionScheduler()\"",
-    
     "dev": "dotenv -e .env -- nodemon src/server.ts",
     "build": "tsc",
     "build:prod": "dotenv -e .env.production -- tsc",
-
     "test": "dotenv -e .env -- jest",
     "test:watch": "dotenv -e .env -- jest --watch",
     "test:coverage": "dotenv -e .env -- jest --coverage",
@@ -19,10 +17,8 @@
     "test:basic": "dotenv -e .env -- node -r ts-node/register src/test/simpleTest.js",
     "test:collectors": "dotenv -e .env -- node -r ts-node/register src/test/testCollectors.ts",
     "test:system": "dotenv -e .env -- node -r ts-node/register src/test/systemTest.ts",
-
     "collect:data": "dotenv -e .env -- node -r ts-node/register -e \"require('./src/collectors/krxCollector').KRXCollector.collectDailyData().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
-    "collect:historical": "dotenv -e .env -- npx ts-node -e \"import('./src/services/scheduler').then(m => m.collectHistoricalData('2025-01-01', '2025-01-31'))\"",
-
+    "collect:historical": "dotenv -e .env -- npx ts-node -e \"import('./src/services/scheduler').then(m => m.collectHistoricalData('2025-01-16', '2025-01-31'))\"",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate deploy",
@@ -50,10 +46,12 @@
   "dependencies": {
     "@prisma/client": "^5.7.1",
     "axios": "^1.9.0",
+    "cheerio": "^1.1.0",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "date-fns": "^3.0.6",
     "dotenv": "^16.3.1",
+    "dotenv-cli": "^7.0.0",
     "express": "^4.18.2",
     "helmet": "^7.1.0",
     "joi": "^17.11.0",
@@ -62,8 +60,7 @@
     "node-cron": "^3.0.3",
     "prisma": "^5.7.1",
     "rate-limiter-flexible": "^4.0.1",
-    "winston": "^3.11.0",
-    "dotenv-cli": "^7.0.0"
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "@types/compression": "^1.7.5",

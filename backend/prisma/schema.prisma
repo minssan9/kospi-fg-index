@@ -51,14 +51,11 @@ model KospiData {
 model KosdaqData {
   id            Int      @id @default(autoincrement())
   date          DateTime @unique @db.Date
-  openPrice     Decimal  @db.Decimal(10, 2)
-  closePrice    Decimal  @db.Decimal(10, 2)
-  highPrice     Decimal  @db.Decimal(10, 2)
-  lowPrice      Decimal  @db.Decimal(10, 2)
-  volume        BigInt
-  marketCap     BigInt?
-  change        Decimal  @db.Decimal(10, 2)
-  changePercent Decimal  @db.Decimal(5, 2)
+  index         Decimal  @db.Decimal(10, 2) // 지수 값
+  change        Decimal  @db.Decimal(10, 2) // 전일 대비 변화
+  changePercent Decimal  @db.Decimal(5, 2)  // 변화율 (%)
+  volume        BigInt   // 거래량
+  value         BigInt   // 거래대금
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -197,4 +194,31 @@ model SystemConfig {
   updatedAt DateTime @updatedAt
   
   @@map("system_config")
-} 
+}
+
+model UpbitIndexData {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique @db.Date
+  value     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("external_upbit_index_data")
+}
+
+model CnnFearGreedIndexData {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique @db.Date
+  value     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("external_cnn_fg_index_data")
+}
+
+model KoreaFGIndexData {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique @db.Date
+  value     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("external_korea_fg_index_data")
+}

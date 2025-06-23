@@ -132,14 +132,17 @@ export class BOKCollector {
     statCode: string,
     startDate: string,
     endDate?: string,
-    cycle: string = 'A', // 주기(년:A, 반년:S, 분기:Q, 월:M, 반월:SM, 일: D)
+    cycle?: string,
     startCount: number = 1,
     endCount: number = 10,
     responseType: string = 'json',
     lang: string = 'kr'
   ): Promise<string | null> {
     try {
-      const url = `${this.BASE_URL}/StatisticSearch/${this.API_KEY}/${responseType}/${lang}/${startCount}/${endCount}/${statCode}/${cycle}/${startDate}/${endDate || startDate}`
+      // Determine cycle based on statCode and date format
+      const determinedCycle = cycle || this.determineCycle(statCode, startDate)
+      
+      const url = `${this.BASE_URL}/StatisticSearch/${this.API_KEY}/${responseType}/${lang}/${startCount}/${endCount}/${statCode}/${determinedCycle}/${startDate}/${endDate || startDate}`
       
       const response = await axios.get(url, {
         timeout: this.TIMEOUT,
@@ -148,20 +151,57 @@ export class BOKCollector {
         }
       })
 
-      if (response.data && 
-          response.data.StatisticSearch && 
-          response.data.StatisticSearch.row && 
-          response.data.StatisticSearch.row.length > 0) {
-        
-        return response.data.StatisticSearch.row[0].DATA_VALUE
+      if (!response.data?.StatisticSearch?.row?.length) {
+        throw new Error(`[BOK] 지표 ${statCode} 데이터 없음: ${startDate}`)
+      }
+      
+      const value = response.data.StatisticSearch.row[0].DATA_VALUE
+      if (!value && value !== 0) {
+        throw new Error(`[BOK] 지표 ${statCode} 데이터 값 누락: ${startDate}`)
       }
 
-      return null
+      return value
 
     } catch (error) {
-      console.error(`[BOK] 지표 ${statCode} 수집 실패:`, (error as any)?.message)
-      return null
+      const errorMessage = `[BOK] 지표 ${statCode} 수집 실패: ${(error as any)?.message}`
+      console.error(errorMessage)
+      throw new Error(errorMessage)
     }
+  }
+
+  /**
+   * 지표코드와 날짜 형식에 따라 주기 결정
+   */
+  private static determineCycle(statCode: string, date: string): string {
+    // Monthly indicators (CPI, PPI, Unemployment Rate)
+    const monthlyIndicators = ['901Y009', '404Y014', '200Y002']
+    if (monthlyIndicators.includes(statCode)) {
+      return 'M'
+    }
+
+    // Quarterly indicators (GDP)
+    const quarterlyIndicators = ['200Y001']
+    if (quarterlyIndicators.includes(statCode)) {
+      return 'Q'
+    }
+
+    // Annual indicators
+    const annualIndicators = ['200Y003']
+    if (annualIndicators.includes(statCode)) {
+      return 'A'
+    }
+
+    // Check date format
+    if (date.length === 4) { // YYYY
+      return 'A'
+    } else if (date.length === 6) { // YYYYMM
+      return 'M'
+    } else if (date.includes('Q')) { // YYYYQ1
+      return 'Q'
+    }
+
+    // Default to daily for all other cases
+    return 'D'
   }
 
   /**
@@ -280,8 +320,10 @@ export class BOKCollector {
    */
   static async validateApiKey(): Promise<boolean> {
     try {
-      const testDate = new Date().toISOString().slice(0, 7).replace('-', '')
-      const testResult = await this.fetchSingleIndicator('901Y009', testDate)
+      const testDate = new Date()
+      testDate.setMonth(testDate.getMonth() - 1) // Subtract 1 month
+      const formattedDate = testDate.toISOString().slice(0, 7).replace('-', '') // Format as YYYYMM
+      const testResult = await this.fetchSingleIndicator('901Y009', formattedDate)
       return testResult !== null
     } catch (error) {
       console.error('[BOK] API 키 유효성 검증 실패:', (error as any)?.message)

@@ -1,4 +1,7 @@
 import { formatDate } from '../utils/dateUtils'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 /**
  * Fear & Greed Index 계산 결과 인터페이스
@@ -28,8 +31,8 @@ export class FearGreedCalculator {
   private static readonly WEIGHTS = {
     priceMomentum: 0.25,      // 주가 모멘텀 25%
     investorSentiment: 0.25,  // 투자자 심리 25%
-    putCallRatio: 0.20,       // 풋/콜 비율 20%
-    volatilityIndex: 0.15,    // 변동성 지수 15%
+    putCallRatio: 0.15,       // 풋/콜 비율 15%
+    volatilityIndex: 0.20,    // 변동성 지수 20%
     safeHavenDemand: 0.15     // 안전자산 수요 15%
   }
 
@@ -45,13 +48,45 @@ export class FearGreedCalculator {
   }
 
   /**
+   * 각 구성요소 계산
+   */
+  private static async calculateComponents(date: string): Promise<{
+    priceMomentum: number
+    investorSentiment: number
+    putCallRatio: number
+    volatilityIndex: number
+    safeHavenDemand: number
+  }> {
+    const [
+      priceMomentum,
+      investorSentiment,
+      putCallRatio,
+      volatilityIndex,
+      safeHavenDemand
+    ] = await Promise.all([
+      this.calculatePriceMomentum(date),
+      this.calculateInvestorSentiment(date),
+      this.calculatePutCallRatio(date),
+      this.calculateVolatilityIndex(date),
+      this.calculateSafeHavenDemand(date)
+    ])
+
+    return {
+      priceMomentum,
+      investorSentiment,
+      putCallRatio,
+      volatilityIndex,
+      safeHavenDemand
+    }
+  }
+
+  /**
    * 특정 날짜의 Fear & Greed Index 계산
    */
   static async calculateIndex(date: string): Promise<FearGreedResult> {
     console.log(`[FearGreed] ${date} Fear & Greed Index 계산 시작`)
 
     try {
-      // 샘플 데이터를 사용한 계산 (실제 구현에서는 데이터베이스에서 조회)
       const components = await this.calculateComponents(date)
       
       // 가중평균으로 최종 지수 계산
@@ -84,70 +119,170 @@ export class FearGreedCalculator {
   }
 
   /**
-   * 각 구성요소 계산
-   */
-  private static async calculateComponents(date: string): Promise<{
-    priceMomentum: number
-    investorSentiment: number
-    putCallRatio: number
-    volatilityIndex: number
-    safeHavenDemand: number
-  }> {
-    // 실제 구현에서는 데이터베이스에서 데이터를 조회하여 계산
-    // 현재는 샘플 값으로 계산
-    
-    return {
-      priceMomentum: this.calculatePriceMomentum(),
-      investorSentiment: this.calculateInvestorSentiment(),
-      putCallRatio: this.calculatePutCallRatio(),
-      volatilityIndex: this.calculateVolatilityIndex(),
-      safeHavenDemand: this.calculateSafeHavenDemand()
-    }
-  }
-
-  /**
    * 주가 모멘텀 계산 (0-100)
    */
-  private static calculatePriceMomentum(): number {
-    // 샘플 계산 - 실제로는 KOSPI 지수의 이동평균 대비 현재 위치 계산
-    const momentum = 65 // 상승 추세
-    return Math.max(0, Math.min(100, momentum))
+  private static async calculatePriceMomentum(date: string): Promise<number> {
+    try {
+      // 120일 전 데이터까지 조회
+      const historicalData = await prisma.kospiData.findMany({
+        where: {
+          date: {
+            lte: new Date(date)
+          }
+        },
+        orderBy: {
+          date: 'desc'
+        },
+        take: 120
+      })
+
+      if (historicalData.length < 20) {
+        console.warn('[FearGreed] 주가 모멘텀 계산을 위한 데이터 부족')
+        return 50 // 중립값 반환
+      }
+
+      // 20일/120일 이동평균 계산
+      const ma20 = historicalData.slice(0, 20).reduce((sum, data) => 
+        sum + Number(data.index), 0) / 20
+      const ma120 = historicalData.reduce((sum, data) => 
+        sum + Number(data.index), 0) / historicalData.length
+
+      // 모멘텀 점수 계산 (MA20이 MA120 대비 ±10% 범위를 0-100으로 변환)
+      const momentum = ((ma20 / ma120 - 0.9) * 500)
+      return Math.max(0, Math.min(100, momentum))
+
+    } catch (error) {
+      console.error('[FearGreed] 주가 모멘텀 계산 실패:', error)
+      return 50 // 오류 시 중립값 반환
+    }
   }
 
   /**
    * 투자자 심리 계산 (0-100)
    */
-  private static calculateInvestorSentiment(): number {
-    // 샘플 계산 - 실제로는 투자자별 매매동향 분석
-    const sentiment = 45 // 약간 부정적
-    return Math.max(0, Math.min(100, sentiment))
+  private static async calculateInvestorSentiment(date: string): Promise<number> {
+    try {
+      // 5일간의 투자자 데이터 조회
+      const tradingData = await prisma.investorTrading.findMany({
+        where: {
+          date: {
+            lte: new Date(date)
+          }
+        },
+        orderBy: {
+          date: 'desc'
+        },
+        take: 5
+      })
+
+      if (tradingData.length === 0) {
+        console.warn('[FearGreed] 투자자 심리 계산을 위한 데이터 부족')
+        return 50 // 중립값 반환
+      }
+
+      // 외국인과 기관의 순매수 합산
+      let totalNetBuying = 0n
+      tradingData.forEach(data => {
+        const foreignNet = data.foreignBuying - data.foreignSelling
+        const institutionalNet = data.institutionalBuying - data.institutionalSelling
+        totalNetBuying += foreignNet + institutionalNet
+      })
+
+      // 순매수를 0-100 점수로 변환 (±10조원 범위)
+      const maxRange = 10000000000000n // 10조원
+      const score = Number((totalNetBuying + maxRange) * 100n / (maxRange * 2n))
+      return Math.max(0, Math.min(100, score))
+
+    } catch (error) {
+      console.error('[FearGreed] 투자자 심리 계산 실패:', error)
+      return 50 // 오류 시 중립값 반환
+    }
   }
 
   /**
    * 풋/콜 비율 계산 (0-100)
    */
-  private static calculatePutCallRatio(): number {
-    // 샘플 계산 - 실제로는 옵션 시장 데이터 분석
-    const putCallScore = 60 // 중립적
-    return Math.max(0, Math.min(100, putCallScore))
+  private static async calculatePutCallRatio(date: string): Promise<number> {
+    try {
+      const optionData = await prisma.optionData.findFirst({
+        where: {
+          date: new Date(date)
+        }
+      })
+
+      if (!optionData) {
+        console.warn('[FearGreed] 풋/콜 비율 계산을 위한 데이터 부족')
+        return 50 // 중립값 반환
+      }
+
+      // Put/Call 비율을 0-100 점수로 변환 (0.5~2.0 범위)
+      // 비율이 높을수록 공포심리 (낮은 점수)
+      const ratio = Number(optionData.putCallRatio)
+      const score = 100 - ((ratio - 0.5) * 66.67)
+      return Math.max(0, Math.min(100, score))
+
+    } catch (error) {
+      console.error('[FearGreed] 풋/콜 비율 계산 실패:', error)
+      return 50 // 오류 시 중립값 반환
+    }
   }
 
   /**
    * 변동성 지수 계산 (0-100)
    */
-  private static calculateVolatilityIndex(): number {
-    // 샘플 계산 - 실제로는 VKOSPI 또는 역사적 변동성 분석
-    const volatility = 40 // 낮은 변동성 (좋은 신호)
-    return Math.max(0, Math.min(100, volatility))
+  private static async calculateVolatilityIndex(date: string): Promise<number> {
+    try {
+      const vkospiData = await prisma.vkospiData.findFirst({
+        where: {
+          date: new Date(date)
+        }
+      })
+
+      if (!vkospiData) {
+        console.warn('[FearGreed] 변동성 지수 계산을 위한 데이터 부족')
+        return 50 // 중립값 반환
+      }
+
+      // VKOSPI를 0-100 점수로 변환 (10~40 범위)
+      // 변동성이 높을수록 공포심리 (낮은 점수)
+      const vkospi = Number(vkospiData.value)
+      const score = 100 - ((vkospi - 10) * 3.33)
+      return Math.max(0, Math.min(100, score))
+
+    } catch (error) {
+      console.error('[FearGreed] 변동성 지수 계산 실패:', error)
+      return 50 // 오류 시 중립값 반환
+    }
   }
 
   /**
    * 안전자산 수요 계산 (0-100)
    */
-  private static calculateSafeHavenDemand(): number {
-    // 샘플 계산 - 실제로는 국채 수익률 커브 분석
-    const safeHavenDemand = 50 // 중립적
-    return Math.max(0, Math.min(100, safeHavenDemand))
+  private static async calculateSafeHavenDemand(date: string): Promise<number> {
+    try {
+      const yieldData = await prisma.bondYieldCurveData.findFirst({
+        where: {
+          date: new Date(date)
+        }
+      })
+
+      if (!yieldData || !yieldData.yield3Y || !yieldData.yield10Y) {
+        console.warn('[FearGreed] 안전자산 수요 계산을 위한 데이터 부족')
+        return 50 // 중립값 반환
+      }
+
+      // 10년물과 3년물의 스프레드 계산
+      const spread = Number(yieldData.yield10Y) - Number(yieldData.yield3Y)
+      
+      // 스프레드를 0-100 점수로 변환 (-0.5~2.0 범위)
+      // 스프레드가 작을수록 공포심리 (낮은 점수)
+      const score = ((spread + 0.5) * 40)
+      return Math.max(0, Math.min(100, score))
+
+    } catch (error) {
+      console.error('[FearGreed] 안전자산 수요 계산 실패:', error)
+      return 50 // 오류 시 중립값 반환
+    }
   }
 
   /**

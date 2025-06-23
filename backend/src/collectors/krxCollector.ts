@@ -10,6 +10,15 @@ export interface KOSPIData {
   value: number
 }
 
+export interface KOSDAQData {
+  date: string
+  index: number
+  change: number
+  changePercent: number
+  volume: number
+  value: number
+}
+
 export interface InvestorTradingData {
   date: string
   foreignBuying: number
@@ -28,222 +37,199 @@ export interface OptionData {
 }
 
 export class KRXCollector {
-  private static readonly BASE_URL = 'http://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd'
+  private static readonly BASE_URL = 'https://openapi.koreainvestment.com:9443'
+  private static readonly APP_KEY = process.env.KIS_API_KEY || ''
+  private static readonly APP_SECRET = process.env.KIS_API_SECRET || ''
   private static readonly TIMEOUT = 10000
+  private static readonly CUSTOMER_TYPE = 'P' // 개인
+  private static accessToken: string | null = null
 
   /**
-   * KOSPI 지수 데이터 수집
+   * KIS API 접근 토큰 발급
    */
-  static async fetchKOSPIData(date: string): Promise<KOSPIData | null> {
+  private static async issueAccessToken(): Promise<void> {
     try {
-      console.log(`[KRX] KOSPI 데이터 수집 시작: ${date}`)
+      if (!this.APP_KEY || !this.APP_SECRET) {
+        throw new Error('KIS API Key or Secret is not set in environment variables.')
+      }
+
+      const response = await axios.post(
+        `${this.BASE_URL}/oauth2/tokenP`,
+        {
+          grant_type: 'client_credentials',
+          appkey: this.APP_KEY,
+          appsecret: this.APP_SECRET,
+        },
+        {
+          headers: { 'content-type': 'application/json' },
+          timeout: this.TIMEOUT,
+        }
+      )
+
+      const token = response.data?.access_token
+      if (!token) {
+        throw new Error('Failed to retrieve access token from KIS API.')
+      }
+      this.accessToken = token
+      console.log('[KIS] Access token issued successfully.')
+    } catch (error) {
+      const errorMessage = `[KIS] Access token issuance failed: ${
+        (error as any).response?.data?.msg1 || (error as any).message
+      }`
+      console.error(errorMessage)
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
+   * 유효한 접근 토큰 반환 (없으면 발급)
+   */
+  private static async getAccessToken(): Promise<string> {
+    // For production, you should handle token expiration and refresh.
+    // Here we fetch it once if it's not available.
+    if (!this.accessToken) {
+      await this.issueAccessToken()
+    }
+    return this.accessToken!
+  }
+
+  private static async getHeaders(tr_id: string) {
+    const accessToken = await this.getAccessToken()
+    return {
+      'content-type': 'application/json',
+      authorization: `Bearer ${accessToken}`,
+      appkey: this.APP_KEY,
+      appsecret: this.APP_SECRET,
+      tr_id: tr_id,
+      custtype: this.CUSTOMER_TYPE,
+    }
+  }
+
+  /**
+   * KOSPI 지수 데이터 수집 (KIS OpenAPI)
+   */
+  static async fetchKOSPIData(date: string): Promise<KOSPIData> {
+    try {
+      const response = await axios.get(
+        `${this.BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-price`,
+        {
+          params: {
+            fid_cond_mrkt_div_code: 'U',
+            fid_input_iscd: '0001', // KOSPI
+          }, 
+          headers: await this.getHeaders('FHPUP02100000'),
+          timeout: this.TIMEOUT,
+        }
+      )
+      const data = response.data?.output
+      if (!data) throw new Error('No KOSPI data returned')
+      return {
+        date,
+        index: parseFloat(data.stck_prpr), // 현재가
+        change: parseFloat(data.prdy_vrss), // 전일대비
+        changePercent: parseFloat(data.prdy_ctrt), // 등락률
+        volume: parseInt(data.acml_vol), // 누적거래량
+        value: parseInt(data.acml_tr_pbmn), // 누적거래대금
+      }
+    } catch (error) {
+      const errorMessage = `[KIS] KOSPI 데이터 수집 실패 (${date}): ${(error as any)?.message}`
+      console.error(errorMessage)
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
+   * KOSDAQ 지수 데이터 수집 (KIS OpenAPI)
+   */
+  static async fetchKOSDAQData(date: string): Promise<KOSDAQData> {
+    try {
+      const response = await axios.get(
+        `${this.BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-price`,
+        {
+          params: {
+            fid_cond_mrkt_div_code: 'U',
+            fid_input_iscd: '1001', // KOSDAQ
+          }, 
+          headers: await this.getHeaders('FHPUP02100000'),
+          timeout: this.TIMEOUT,
+        }
+      )
+      const data = response.data?.output
+      if (!data) throw new Error('No KOSDAQ data returned')
+      return {
+        date,
+        index: parseFloat(data.stck_prpr), // 현재가
+        change: parseFloat(data.prdy_vrss), // 전일대비
+        changePercent: parseFloat(data.prdy_ctrt), // 등락률
+        volume: parseInt(data.acml_vol), // 누적거래량
+        value: parseInt(data.acml_tr_pbmn), // 누적거래대금
+      }
+    } catch (error) {
+      const errorMessage = `[KIS] KOSDAQ 데이터 수집 실패 (${date}): ${(error as any)?.message}`
+      console.error(errorMessage)
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
+   * 투자자별 매매동향 데이터 수집 (KIS OpenAPI)
+   */
+  static async fetchInvestorTradingData(
+    date: string,
+    market: 'KOSPI' | 'KOSDAQ' = 'KOSPI'
+  ): Promise<InvestorTradingData> {
+    const marketCode = market === 'KOSPI' ? '0001' : '1001'
+    const marketName = market
+
+    try {
+      const response = await axios.get(
+        `${this.BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market`,
+        {
+          params: {
+            fid_cond_mrkt_div_code: 'J',
+            fid_input_iscd: marketCode,
+            fid_input_date_1: date.replace(/-/g, ''),
+            fid_input_date_2: date.replace(/-/g, ''),
+            fid_vol_cnt_gb_cd: '1', // 1: 수량, 2: 금액
+          },
+          headers: await this.getHeaders('FHPTJ04030000'),
+          timeout: this.TIMEOUT,
+        }
+      )
+      const data = response.data?.output1[0] // output1 is an array
+      if (!data) throw new Error(`No investor trading data returned for ${marketName}`)
       
-      const params = {
-        bld: 'dbms/MDC/STAT/standard/MDCSTAT01501',
-        locale: 'ko_KR',
-        trdDd: date.replace(/-/g, ''), // YYYYMMDD 형식으로 변환
-        mktId: 'STK',
-        share: '1',
-        csvxls_isNo: 'false'
+      // KIS API는 순매수/순매도량을 제공, 우리는 매수/매도를 분리해야 함
+      // 여기서는 순매수량을 각 'buying' 필드에, 0을 'selling' 필드에 할당
+      // 이는 완벽한 데이터는 아니지만, Fear & Greed Index 계산 로직과 호환됨
+      // 순매수량 (양수: 순매수, 음수: 순매도)
+      const foreignNet = parseInt(data.frgn_ntby_qty || '0')
+      const individualNet = parseInt(data.prsn_ntby_qty || '0')
+      const institutionalNet = parseInt(data.orgn_ntby_qty || '0')
+
+      return {
+        date,
+        foreignBuying: foreignNet > 0 ? foreignNet : 0,
+        foreignSelling: foreignNet < 0 ? -foreignNet : 0,
+        individualBuying: individualNet > 0 ? individualNet : 0,
+        individualSelling: individualNet < 0 ? -individualNet : 0,
+        institutionalBuying: institutionalNet > 0 ? institutionalNet : 0,
+        institutionalSelling: institutionalNet < 0 ? -institutionalNet : 0,
       }
-
-      const response = await axios.post(this.BASE_URL, null, {
-        params,
-        timeout: this.TIMEOUT,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      })
-
-      if (response.data && response.data.OutBlock_1 && response.data.OutBlock_1.length > 0) {
-        const kospiData = response.data.OutBlock_1.find((item: any) => 
-          item.IDX_NM && item.IDX_NM.includes('KOSPI')
-        )
-
-        if (kospiData) {
-          return {
-            date,
-            index: parseFloat(kospiData.CLSPRC_IDX || '0'),
-            change: parseFloat(kospiData.CMPPREVDD_IDX || '0'),
-            changePercent: parseFloat(kospiData.PRD_DE_RATE || '0'),
-            volume: parseInt(kospiData.ACC_TRDVOL || '0'),
-            value: parseInt(kospiData.ACC_TRDVAL || '0')
-          }
-        }
-      }
-
-      console.log(`[KRX] KOSPI 데이터 없음: ${date}`)
-      return null
-
     } catch (error) {
-      console.error(`[KRX] KOSPI 데이터 수집 실패 (${date}):`, (error as any)?.message)
-      return null
+      const errorMessage = `[KIS] ${marketName} 투자자별 매매동향 수집 실패 (${date}): ${
+        (error as any)?.message
+      }`
+      console.error(errorMessage)
+      throw new Error(errorMessage)
     }
   }
 
   /**
-   * 투자자별 매매동향 데이터 수집
+   * 옵션 Put/Call 비율 데이터 수집 (Not supported in KIS OpenAPI)
    */
-  static async fetchInvestorTradingData(date: string): Promise<InvestorTradingData | null> {
-    try {
-      console.log(`[KRX] 투자자별 매매동향 수집 시작: ${date}`)
-
-      const params = {
-        bld: 'dbms/MDC/STAT/standard/MDCSTAT02203',
-        locale: 'ko_KR',
-        trdDd: date.replace(/-/g, ''),
-        mktId: 'STK',
-        share: '1',
-        csvxls_isNo: 'false'
-      }
-
-      const response = await axios.post(this.BASE_URL, null, {
-        params,
-        timeout: this.TIMEOUT,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      })
-
-      if (response.data && response.data.OutBlock_1 && response.data.OutBlock_1.length > 0) {
-        const tradingData = response.data.OutBlock_1
-
-        // 외국인, 개인, 기관 데이터 추출
-        const foreignData = tradingData.find((item: any) => 
-          item.INVST_TP_NM && item.INVST_TP_NM.includes('외국인')
-        )
-        const individualData = tradingData.find((item: any) => 
-          item.INVST_TP_NM && item.INVST_TP_NM.includes('개인')
-        )
-        const institutionalData = tradingData.find((item: any) => 
-          item.INVST_TP_NM && item.INVST_TP_NM.includes('기관')
-        )
-
-        return {
-          date,
-          foreignBuying: parseInt(String(foreignData?.ASK_TRDVAL || '0')),
-          foreignSelling: parseInt(String(foreignData?.BID_TRDVAL || '0')),
-          individualBuying: parseInt(String(individualData?.ASK_TRDVAL || '0')),
-          individualSelling: parseInt(String(individualData?.BID_TRDVAL || '0')),
-          institutionalBuying: parseInt(String(institutionalData?.ASK_TRDVAL || '0')),
-          institutionalSelling: parseInt(String(institutionalData?.BID_TRDVAL || '0'))
-        }
-      }
-
-      console.log(`[KRX] 투자자별 매매동향 데이터 없음: ${date}`)
-      return null
-
-    } catch (error) {
-      console.error(`[KRX] 투자자별 매매동향 수집 실패 (${date}):`, (error as any)?.message)
-      return null
-    }
-  }
-
-  /**
-   * 옵션 Put/Call 비율 데이터 수집
-   */
-  static async fetchOptionData(date: string): Promise<OptionData | null> {
-    try {
-      console.log(`[KRX] 옵션 데이터 수집 시작: ${date}`)
-
-      const params = {
-        bld: 'dbms/MDC/STAT/standard/MDCSTAT30801',
-        locale: 'ko_KR',
-        trdDd: date.replace(/-/g, ''),
-        share: '1',
-        csvxls_isNo: 'false'
-      }
-
-      const response = await axios.post(this.BASE_URL, null, {
-        params,
-        timeout: this.TIMEOUT,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      })
-
-      if (response.data && response.data.OutBlock_1 && response.data.OutBlock_1.length > 0) {
-        let putVolume = 0
-        let callVolume = 0
-
-        response.data.OutBlock_1.forEach((item: any) => {
-          if (item.ISU_ABBRV && item.ISU_ABBRV.includes('P')) {
-            putVolume += parseInt(String(item.ACC_TRDVOL || '0'))
-          } else if (item.ISU_ABBRV && item.ISU_ABBRV.includes('C')) {
-            callVolume += parseInt(String(item.ACC_TRDVOL || '0'))
-          }
-        })
-
-        const putCallRatio = callVolume > 0 ? putVolume / callVolume : 0
-
-        return {
-          date,
-          putVolume,
-          callVolume,
-          putCallRatio
-        }
-      }
-
-      console.log(`[KRX] 옵션 데이터 없음: ${date}`)
-      return null
-
-    } catch (error) {
-      console.error(`[KRX] 옵션 데이터 수집 실패 (${date}):`, (error as any)?.message)
-      return null
-    }
-  }
-
-  /**
-   * 특정 날짜의 모든 KRX 데이터 수집
-   */
-  static async collectDailyData(date: string): Promise<{
-    kospi: KOSPIData | null
-    trading: InvestorTradingData | null
-    options: OptionData | null
-  }> {
-    console.log(`[KRX] ${date} 일일 데이터 수집 시작`)
-    
-    const results = {
-      kospi: null as KOSPIData | null,
-      trading: null as InvestorTradingData | null,
-      options: null as OptionData | null
-    }
-
-    try {
-      // KOSPI 지수 데이터 수집
-      try {
-        results.kospi = await this.fetchKOSPIData(date)
-        console.log(`[KRX] KOSPI 데이터 수집 완료: ${date}`)
-      } catch (error) {
-        console.error(`[KRX] KOSPI 데이터 수집 실패 (${date}):`, (error as any)?.message)
-      }
-
-      // 투자자별 매매동향 수집
-      try {
-        results.trading = await this.fetchInvestorTradingData(date)
-        console.log(`[KRX] 투자자별 매매동향 수집 완료: ${date}`)
-      } catch (error) {
-        console.error(`[KRX] 투자자별 매매동향 수집 실패 (${date}):`, (error as any)?.message)
-      }
-
-      // 옵션 데이터 수집
-      try {
-        results.options = await this.fetchOptionData(date)
-        console.log(`[KRX] 옵션 데이터 수집 완료: ${date}`)
-      } catch (error) {
-        console.error(`[KRX] 옵션 데이터 수집 실패 (${date}):`, (error as any)?.message)
-      }
-
-      console.log(`[KRX] ${date} 일일 데이터 수집 완료`)
-      return results
-
-    } catch (error) {
-      console.error(`[KRX] ${date} 일일 데이터 수집 중 오류:`, (error as any)?.message)
-      return results
-    }
+  static async fetchOptionData(date: string): Promise<OptionData> {
+    throw new Error('Option data (Put/Call ratio) is not supported by Korea Investment & Securities Open API.')
   }
 
   /**
@@ -252,18 +238,12 @@ export class KRXCollector {
   static getLastBusinessDay(): string {
     const today = new Date()
     const day = today.getDay()
-    
-    // 월요일(1)이면 3일 전 (금요일)
-    // 일요일(0)이면 2일 전 (금요일)
-    // 토요일(6)이면 1일 전 (금요일)
     let daysToSubtract = 1
     if (day === 1) daysToSubtract = 3
     else if (day === 0) daysToSubtract = 2
     else if (day === 6) daysToSubtract = 1
-
     const lastBusinessDay = new Date(today)
     lastBusinessDay.setDate(today.getDate() - daysToSubtract)
-    
     return lastBusinessDay.toISOString().split('T')[0] as string
   }
 } 

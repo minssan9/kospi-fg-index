@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import type { 
   KOSPIData, 
+  KOSDAQData, 
   InvestorTradingData, 
   OptionData 
 } from '../collectors/krxCollector'
@@ -46,6 +47,43 @@ export class DatabaseService {
       console.log(`[DB] KOSPI 데이터 저장 완료: ${data.date}`)
     } catch (error) {
       console.error(`[DB] KOSPI 데이터 저장 실패 (${data.date}):`, error)
+      throw error
+    }
+  }
+
+  /**
+   * KOSDAQ 데이터 저장
+   */
+  static async saveKOSDAQData(data: KOSDAQData): Promise<void> {
+    try {
+      await prisma.kosdaqData.upsert({
+        where: { date: new Date(data.date) },
+        update: {
+          openPrice: data.openPrice,
+          closePrice: data.closePrice,
+          highPrice: data.highPrice,
+          lowPrice: data.lowPrice,
+          volume: BigInt(data.volume),
+          marketCap: data.marketCap ? BigInt(data.marketCap) : null,
+          change: data.change,
+          changePercent: data.changePercent,
+          updatedAt: new Date()
+        },
+        create: {
+          date: new Date(data.date),
+          openPrice: data.openPrice,
+          closePrice: data.closePrice,
+          highPrice: data.highPrice,
+          lowPrice: data.lowPrice,
+          volume: BigInt(data.volume),
+          marketCap: data.marketCap ? BigInt(data.marketCap) : null,
+          change: data.change,
+          changePercent: data.changePercent
+        }
+      })
+      console.log(`[DB] KOSDAQ 데이터 저장 완료: ${data.date}`)
+    } catch (error) {
+      console.error(`[DB] KOSDAQ 데이터 저장 실패 (${data.date}):`, error)
       throw error
     }
   }
@@ -514,5 +552,74 @@ export class DatabaseService {
       },
       orderBy: { createdAt: 'desc' }
     })
+  }
+
+  /**
+   * Upbit Index 데이터 저장
+   */
+  static async saveUpbitIndexData(data: { date: string, value: number }): Promise<void> {
+    try {
+      await prisma.upbitIndexData.upsert({
+        where: { date: new Date(data.date) },
+        update: {
+          value: data.value,
+          updatedAt: new Date()
+        },
+        create: {
+          date: new Date(data.date),
+          value: data.value
+        }
+      })
+      console.log(`[DB] Upbit Index 데이터 저장 완료: ${data.date} (${data.value})`)
+    } catch (error) {
+      console.error(`[DB] Upbit Index 데이터 저장 실패 (${data.date}):`, error)
+      throw error
+    }
+  }
+
+  /**
+   * CNN Fear & Greed Index 데이터 저장
+   */
+  static async saveCnnFearGreedIndexData(data: { date: string, value: number }): Promise<void> {
+    try {
+      await prisma.cnnFearGreedIndexData.upsert({
+        where: { date: new Date(data.date) },
+        update: {
+          value: data.value,
+          updatedAt: new Date()
+        },
+        create: {
+          date: new Date(data.date),
+          value: data.value
+        }
+      })
+      console.log(`[DB] CNN Fear & Greed Index 데이터 저장 완료: ${data.date} (${data.value})`)
+    } catch (error) {
+      console.error(`[DB] CNN Fear & Greed Index 데이터 저장 실패 (${data.date}):`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Korea FG Index 데이터 저장
+   */
+  static async saveKoreaFGIndexData(data: { date: string, value: number }): Promise<void> {
+    try {
+      await prisma.koreaFGIndexData.upsert({
+        where: { date: new Date(data.date) },
+        update: {
+          value: data.value,
+          updatedAt: new Date()
+        },
+        create: {
+          date: new Date(data.date),
+          value: data.value
+        }
+      })
+      console.log(`[DB] Korea FG Index 데이터 저장 완료: ${data.date} (${data.value})`)
+    } catch (error) {
+      console.error(`[DB] Korea FG Index 데이터 저장 실패 (${data.date}):`, error)
+      throw error
+    }
   }
 } 

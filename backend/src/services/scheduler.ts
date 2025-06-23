@@ -2,6 +2,10 @@ import cron from 'node-cron'
 import { KRXCollector } from '../collectors/krxCollector'
 import { BOKCollector } from '../collectors/bokCollector'
 import { FearGreedCalculator } from './fearGreedCalculator'
+import { DatabaseService } from './databaseService'
+import { fetchUpbitIndexData } from '../collectors/upbitCollector'
+import { fetchCnnFearGreedIndexData } from '../collectors/cnnCollector'
+import { fetchKoreaFGIndexData } from '../collectors/koreaFGCollector'
 
 // 스케줄러 상태 관리
 let isSchedulerRunning = false
@@ -55,8 +59,32 @@ export function startDataCollectionScheduler(): void {
       timezone: 'Asia/Seoul'
     })
 
+    // 5. 매일 00:10 - 외부 지수(Upbit, CNN, KoreaFG) 수집 및 저장
+    const externalIndexJob = cron.schedule('10 0 * * *', async () => {
+      console.log('[Scheduler] 외부 지수(Upbit, CNN, KoreaFG) 수집 작업 시작')
+      const date: string = getTodayDateString()
+      try {
+        const [upbit, cnn, korea] = await Promise.all([
+          fetchUpbitIndexData(date).catch(e => { console.error('[Upbit] 수집 실패:', e); return null }),
+          fetchCnnFearGreedIndexData(date).catch(e => { console.error('[CNN] 수집 실패:', e); return null }),
+          fetchKoreaFGIndexData(date).catch(e => { console.error('[KoreaFG] 수집 실패:', e); return null })
+        ])
+        await Promise.all([
+          upbit ? DatabaseService.saveUpbitIndexData(upbit) : Promise.resolve(),
+          cnn ? DatabaseService.saveCnnFearGreedIndexData(cnn) : Promise.resolve(),
+          korea ? DatabaseService.saveKoreaFGIndexData(korea) : Promise.resolve()
+        ])
+        console.log('[Scheduler] 외부 지수(Upbit, CNN, KoreaFG) 수집 및 저장 완료')
+      } catch (error) {
+        console.error('[Scheduler] 외부 지수 수집/저장 실패:', error)
+      }
+    }, {
+      scheduled: false,
+      timezone: 'Asia/Seoul'
+    })
+
     // 스케줄러 작업 배열에 추가
-    scheduledJobs = [bokJob, krxJob, fearGreedJob, maintenanceJob]
+    scheduledJobs = [bokJob, krxJob, fearGreedJob, maintenanceJob, externalIndexJob]
 
     // 모든 작업 시작
     scheduledJobs.forEach(job => job.start())
@@ -68,6 +96,7 @@ export function startDataCollectionScheduler(): void {
     console.log('  - KRX 데이터: 평일 15:45') 
     console.log('  - Fear & Greed 계산: 평일 18:00')
     console.log('  - 시스템 유지보수: 매일 00:00')
+    console.log('  - 외부 지수: 매일 00:10')
 
   } catch (error) {
     console.error('스케줄러 시작 중 오류:', error)
@@ -106,7 +135,7 @@ export function stopDataCollectionScheduler(): void {
  * 일일 데이터 수집 (수동 실행용)
  */
 export async function collectDailyData(date?: string): Promise<void> {
-  const targetDate = date || new Date().toISOString().split('T')[0]
+  const targetDate: string = date ?? getTodayDateString()
   
   console.log(`[Manual] ${targetDate} 일일 데이터 수집을 시작합니다.`)
 
@@ -132,30 +161,43 @@ export async function collectDailyData(date?: string): Promise<void> {
  * KRX 데이터 수집
  */
 async function collectKRXData(date?: string): Promise<void> {
+  const targetDate: string = date ?? KRXCollector.getLastBusinessDay() ?? getTodayDateString()
   try {
-    const targetDate = date || KRXCollector.getLastBusinessDay()
     console.log(`[KRX] ${targetDate} 데이터 수집 시작`)
 
     if (!targetDate) {
       throw new Error('Target date is required for KRX data collection')
     }
 
-    const krxData = await KRXCollector.collectDailyData(targetDate)
+    // 각각의 데이터를 병렬로 수집
+    const [kospiData, kosdaqData, tradingData, optionData] = await Promise.all([
+      KRXCollector.fetchKOSPIData(targetDate),
+      KRXCollector.fetchKOSDAQData(targetDate),
+      KRXCollector.fetchInvestorTradingData(targetDate),
+      KRXCollector.fetchOptionData(targetDate).catch(err => {
+        console.warn('[KRX] Option data collection skipped:', err.message)
+        return null
+      })
+    ])
 
-    // TODO: 데이터베이스에 저장
-    // await saveKRXData(krxData)
-
-    console.log(`[KRX] ${targetDate} 데이터 수집 완료`)
-
-    // 수집된 데이터 로깅
-    if (krxData.kospi) {
-      console.log(`  - KOSPI: ${krxData.kospi.index} (${krxData.kospi.changePercent}%)`)
+    // 데이터베이스에 저장 (KOSDAQ은 별도 저장/로깅)
+    await DatabaseService.saveKRXData(targetDate, {
+      kospi: kospiData,
+      trading: tradingData,
+      options: optionData
+    })
+    if (kosdaqData) {
+      await DatabaseService.saveKOSDAQData(kosdaqData)
+      console.log(`  - KOSDAQ: ${kosdaqData.index} (${kosdaqData.changePercent}%) [저장됨]`)
     }
-    if (krxData.trading) {
-      console.log(`  - 외국인 순매수: ${(krxData.trading.foreignBuying - krxData.trading.foreignSelling).toLocaleString()}원`)
+    if (kospiData) {
+      console.log(`  - KOSPI: ${kospiData.index} (${kospiData.changePercent}%)`)
     }
-    if (krxData.options) {
-      console.log(`  - Put/Call 비율: ${krxData.options.putCallRatio.toFixed(2)}`)
+    if (tradingData) {
+      console.log(`  - 외국인 순매수: ${(tradingData.foreignBuying - tradingData.foreignSelling).toLocaleString()}원`)
+    }
+    if (optionData) {
+      console.log(`  - Put/Call 비율: ${optionData.putCallRatio.toFixed(2)}`)
     }
 
   } catch (error) {
@@ -170,8 +212,8 @@ async function collectKRXData(date?: string): Promise<void> {
  * BOK 데이터 수집
  */
 async function collectBOKData(date?: string): Promise<void> {
+  const targetDate: string = date ?? getTodayDateString()
   try {
-    const targetDate = date || new Date().toISOString().split('T')[0]
     console.log(`[BOK] ${targetDate} 데이터 수집 시작`)
 
     // API 키 검증
@@ -187,8 +229,8 @@ async function collectBOKData(date?: string): Promise<void> {
 
     const bokData = await BOKCollector.collectDailyData(targetDate)
 
-    // TODO: 데이터베이스에 저장
-    // await saveBOKData(bokData)
+    // 데이터베이스에 저장
+    await DatabaseService.saveBOKData(targetDate, bokData)
 
     console.log(`[BOK] ${targetDate} 데이터 수집 완료`)
 
@@ -214,7 +256,7 @@ async function collectBOKData(date?: string): Promise<void> {
  */
 async function calculateAndSaveFearGreedIndex(date?: string): Promise<void> {
   try {
-    const targetDate = date || new Date().toISOString().split('T')[0]
+    const targetDate = date ?? getTodayDateString()
     console.log(`[FearGreed] ${targetDate} Fear & Greed Index 계산 시작`)
 
     if (!targetDate) {
@@ -228,8 +270,8 @@ async function calculateAndSaveFearGreedIndex(date?: string): Promise<void> {
       return
     }
 
-    // TODO: 데이터베이스에 저장
-    // await saveFearGreedIndex(fearGreedResult)
+    // 데이터베이스에 저장
+    await DatabaseService.saveFearGreedIndex(fearGreedResult)
 
     console.log(`[FearGreed] ${targetDate} 계산 완료`)
     console.log(`  - 지수: ${fearGreedResult.value}`)
@@ -350,4 +392,8 @@ export function getSchedulerStatus(): {
     jobCount: scheduledJobs.length,
     nextRuns
   }
+}
+
+function getTodayDateString(): string {
+  return new Date().toISOString().split('T')[0]
 } 
