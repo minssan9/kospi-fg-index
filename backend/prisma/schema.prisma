@@ -35,15 +35,92 @@ model FearGreedIndex {
 model KospiData {
   id            Int      @id @default(autoincrement())
   date          DateTime @unique @db.Date
-  index         Decimal  @db.Decimal(10, 2) // 지수 값
-  change        Decimal  @db.Decimal(10, 2) // 전일 대비 변화
-  changePercent Decimal  @db.Decimal(5, 2)  // 변화율 (%)
-  volume        BigInt   // 거래량
-  value         BigInt   // 거래대금
-  
+  // --- Begin krxStockData fields ---
+  iscd_stat_cls_code String
+  marg_rate String
+  rprs_mrkt_kor_name String
+  new_hgpr_lwpr_cls_code String
+  bstp_kor_isnm String
+  temp_stop_yn String
+  oprc_rang_cont_yn String
+  clpr_rang_cont_yn String
+  crdt_able_yn String
+  grmn_rate_cls_code String
+  elw_pblc_yn String
+  stck_prpr String
+  prdy_vrss String
+  prdy_vrss_sign String
+  prdy_ctrt String
+  acml_tr_pbmn String
+  acml_vol String
+  prdy_vrss_vol_rate String
+  stck_oprc String
+  stck_hgpr String
+  stck_lwpr String
+  stck_mxpr String
+  stck_llam String
+  stck_sdpr String
+  wghn_avrg_stck_prc String
+  hts_frgn_ehrt String
+  frgn_ntby_qty String
+  pgtr_ntby_qty String
+  pvt_scnd_dmrs_prc String
+  pvt_frst_dmrs_prc String
+  pvt_pont_val String
+  pvt_frst_dmsp_prc String
+  pvt_scnd_dmsp_prc String
+  dmrs_val String
+  dmsp_val String
+  cpfn String
+  rstc_wdth_prc String
+  stck_fcam String
+  stck_sspr String
+  aspr_unit String
+  hts_deal_qty_unit_val String
+  lstn_stcn String
+  hts_avls String
+  per String
+  pbr String
+  stac_month String
+  vol_tnrt String
+  eps String
+  bps String
+  d250_hgpr String
+  d250_hgpr_date String
+  d250_hgpr_vrss_prpr_rate String
+  d250_lwpr String
+  d250_lwpr_date String
+  d250_lwpr_vrss_prpr_rate String
+  stck_dryy_hgpr String
+  dryy_hgpr_vrss_prpr_rate String
+  dryy_hgpr_date String
+  stck_dryy_lwpr String
+  dryy_lwpr_vrss_prpr_rate String
+  dryy_lwpr_date String
+  w52_hgpr String
+  w52_hgpr_vrss_prpr_ctrt String
+  w52_hgpr_date String
+  w52_lwpr String
+  w52_lwpr_vrss_prpr_ctrt String
+  w52_lwpr_date String
+  whol_loan_rmnd_rate String
+  ssts_yn String
+  stck_shrn_iscd String
+  fcam_cnnm String
+  cpfn_cnnm String
+  apprch_rate String
+  frgn_hldn_qty String
+  vi_cls_code String
+  ovtm_vi_cls_code String
+  last_ssts_cntg_qty String
+  invt_caful_yn String
+  mrkt_warn_cls_code String
+  short_over_yn String
+  sltr_yn String
+  mang_issu_cls_code String
+  // --- End krxStockData fields ---
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
   @@map("market_kospi_data")
 }
 
@@ -51,15 +128,92 @@ model KospiData {
 model KosdaqData {
   id            Int      @id @default(autoincrement())
   date          DateTime @unique @db.Date
-  index         Decimal  @db.Decimal(10, 2) // 지수 값
-  change        Decimal  @db.Decimal(10, 2) // 전일 대비 변화
-  changePercent Decimal  @db.Decimal(5, 2)  // 변화율 (%)
-  volume        BigInt   // 거래량
-  value         BigInt   // 거래대금
-  
+  // --- Begin krxStockData fields ---
+  iscd_stat_cls_code String
+  marg_rate String
+  rprs_mrkt_kor_name String
+  new_hgpr_lwpr_cls_code String
+  bstp_kor_isnm String
+  temp_stop_yn String
+  oprc_rang_cont_yn String
+  clpr_rang_cont_yn String
+  crdt_able_yn String
+  grmn_rate_cls_code String
+  elw_pblc_yn String
+  stck_prpr String
+  prdy_vrss String
+  prdy_vrss_sign String
+  prdy_ctrt String
+  acml_tr_pbmn String
+  acml_vol String
+  prdy_vrss_vol_rate String
+  stck_oprc String
+  stck_hgpr String
+  stck_lwpr String
+  stck_mxpr String
+  stck_llam String
+  stck_sdpr String
+  wghn_avrg_stck_prc String
+  hts_frgn_ehrt String
+  frgn_ntby_qty String
+  pgtr_ntby_qty String
+  pvt_scnd_dmrs_prc String
+  pvt_frst_dmrs_prc String
+  pvt_pont_val String
+  pvt_frst_dmsp_prc String
+  pvt_scnd_dmsp_prc String
+  dmrs_val String
+  dmsp_val String
+  cpfn String
+  rstc_wdth_prc String
+  stck_fcam String
+  stck_sspr String
+  aspr_unit String
+  hts_deal_qty_unit_val String
+  lstn_stcn String
+  hts_avls String
+  per String
+  pbr String
+  stac_month String
+  vol_tnrt String
+  eps String
+  bps String
+  d250_hgpr String
+  d250_hgpr_date String
+  d250_hgpr_vrss_prpr_rate String
+  d250_lwpr String
+  d250_lwpr_date String
+  d250_lwpr_vrss_prpr_rate String
+  stck_dryy_hgpr String
+  dryy_hgpr_vrss_prpr_rate String
+  dryy_hgpr_date String
+  stck_dryy_lwpr String
+  dryy_lwpr_vrss_prpr_rate String
+  dryy_lwpr_date String
+  w52_hgpr String
+  w52_hgpr_vrss_prpr_ctrt String
+  w52_hgpr_date String
+  w52_lwpr String
+  w52_lwpr_vrss_prpr_ctrt String
+  w52_lwpr_date String
+  whol_loan_rmnd_rate String
+  ssts_yn String
+  stck_shrn_iscd String
+  fcam_cnnm String
+  cpfn_cnnm String
+  apprch_rate String
+  frgn_hldn_qty String
+  vi_cls_code String
+  ovtm_vi_cls_code String
+  last_ssts_cntg_qty String
+  invt_caful_yn String
+  mrkt_warn_cls_code String
+  short_over_yn String
+  sltr_yn String
+  mang_issu_cls_code String
+  // --- End krxStockData fields ---
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
   @@map("market_kosdaq_data")
 }
 
@@ -67,16 +221,82 @@ model KosdaqData {
 model InvestorTrading {
   id                    Int      @id @default(autoincrement())
   date                  DateTime @unique @db.Date
-  foreignBuying         BigInt   // 외국인 매수
-  foreignSelling        BigInt   // 외국인 매도
-  individualBuying      BigInt   // 개인 매수
-  individualSelling     BigInt   // 개인 매도
-  institutionalBuying   BigInt   // 기관 매수
-  institutionalSelling  BigInt   // 기관 매도
-  
+  // --- Begin InvestorTradingData fields ---
+  frgn_seln_vol String
+  frgn_shnu_vol String
+  frgn_ntby_qty String
+  frgn_seln_tr_pbmn String
+  frgn_shnu_tr_pbmn String
+  frgn_ntby_tr_pbmn String
+  prsn_seln_vol String
+  prsn_shnu_vol String
+  prsn_ntby_qty String
+  prsn_seln_tr_pbmn String
+  prsn_shnu_tr_pbmn String
+  prsn_ntby_tr_pbmn String
+  orgn_seln_vol String
+  orgn_shnu_vol String
+  orgn_ntby_qty String
+  orgn_seln_tr_pbmn String
+  orgn_shnu_tr_pbmn String
+  orgn_ntby_tr_pbmn String
+  scrt_seln_vol String
+  scrt_shnu_vol String
+  scrt_ntby_qty String
+  scrt_seln_tr_pbmn String
+  scrt_shnu_tr_pbmn String
+  scrt_ntby_tr_pbmn String
+  ivtr_seln_vol String
+  ivtr_shnu_vol String
+  ivtr_ntby_qty String
+  ivtr_seln_tr_pbmn String
+  ivtr_shnu_tr_pbmn String
+  ivtr_ntby_tr_pbmn String
+  pe_fund_seln_tr_pbmn String
+  pe_fund_seln_vol String
+  pe_fund_ntby_vol String
+  pe_fund_shnu_tr_pbmn String
+  pe_fund_shnu_vol String
+  pe_fund_ntby_tr_pbmn String
+  bank_seln_vol String
+  bank_shnu_vol String
+  bank_ntby_qty String
+  bank_seln_tr_pbmn String
+  bank_shnu_tr_pbmn String
+  bank_ntby_tr_pbmn String
+  insu_seln_vol String
+  insu_shnu_vol String
+  insu_ntby_qty String
+  insu_seln_tr_pbmn String
+  insu_shnu_tr_pbmn String
+  insu_ntby_tr_pbmn String
+  mrbn_seln_vol String
+  mrbn_shnu_vol String
+  mrbn_ntby_qty String
+  mrbn_seln_tr_pbmn String
+  mrbn_shnu_tr_pbmn String
+  mrbn_ntby_tr_pbmn String
+  fund_seln_vol String
+  fund_shnu_vol String
+  fund_ntby_qty String
+  fund_seln_tr_pbmn String
+  fund_shnu_tr_pbmn String
+  fund_ntby_tr_pbmn String
+  etc_orgt_seln_vol String
+  etc_orgt_shnu_vol String
+  etc_orgt_ntby_vol String
+  etc_orgt_seln_tr_pbmn String
+  etc_orgt_shnu_tr_pbmn String
+  etc_orgt_ntby_tr_pbmn String
+  etc_corp_seln_vol String
+  etc_corp_shnu_vol String
+  etc_corp_ntby_vol String
+  etc_corp_seln_tr_pbmn String
+  etc_corp_shnu_tr_pbmn String
+  etc_corp_ntby_tr_pbmn String
+  // --- End InvestorTradingData fields ---
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
   @@map("trading_investor_trading")
 }
 
@@ -221,4 +441,10 @@ model KoreaFGIndexData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("external_korea_fg_index_data")
+}
+
+model upbitIndexData {
+  date   DateTime @id
+  value  Float
+  updatedAt DateTime @updatedAt
 }

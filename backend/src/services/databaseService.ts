@@ -1,16 +1,11 @@
 import { PrismaClient } from '@prisma/client'
 import type { 
-  KOSPIData, 
-  KOSDAQData, 
-  InvestorTradingData, 
-  OptionData 
-} from '../collectors/krxCollector'
-import type { 
   InterestRateData, 
   ExchangeRateData, 
   EconomicIndicatorData 
-} from '../collectors/bokCollector'
+} from '@/collectors/bokCollector'
 import type { FearGreedResult } from './fearGreedCalculator'
+import type { krxStockData, InvestorTradingData, OptionData } from '@/types/krxTypes'
 
 const prisma = new PrismaClient()
 
@@ -20,70 +15,27 @@ const prisma = new PrismaClient()
 export class DatabaseService {
   
   /**
-   * KOSPI 데이터 저장
+   * KRX (KOSPI/KOSDAQ) 데이터 저장
    */
-  static async saveKOSPIData(data: KOSPIData): Promise<void> {
+  static async saveKRXStockData(data: krxStockData, market: 'KOSPI' | 'KOSDAQ'): Promise<void> {
+    const model = market === 'KOSPI' ? 'kospiData' : 'kosdaqData';
+    // Exclude id, createdAt, updatedAt
+    const { date, ...fields } = data;
     try {
-      await prisma.kospiData.upsert({
-        where: { date: new Date(data.date) },
+      await (prisma as any)[model].upsert({
+        where: { date: new Date(date) },
         update: {
-          index: data.index,
-          change: data.change,
-          changePercent: data.changePercent,
-          volume: BigInt(data.volume),
-          value: BigInt(data.value),
+          ...fields,
           updatedAt: new Date()
         },
         create: {
-          date: new Date(data.date),
-          index: data.index,
-          change: data.change,
-          changePercent: data.changePercent,
-          volume: BigInt(data.volume),
-          value: BigInt(data.value)
+          date: new Date(date),
+          ...fields
         }
       })
-      
-      console.log(`[DB] KOSPI 데이터 저장 완료: ${data.date}`)
+      console.log(`[DB] ${market} 데이터 저장 완료: ${date}`)
     } catch (error) {
-      console.error(`[DB] KOSPI 데이터 저장 실패 (${data.date}):`, error)
-      throw error
-    }
-  }
-
-  /**
-   * KOSDAQ 데이터 저장
-   */
-  static async saveKOSDAQData(data: KOSDAQData): Promise<void> {
-    try {
-      await prisma.kosdaqData.upsert({
-        where: { date: new Date(data.date) },
-        update: {
-          openPrice: data.openPrice,
-          closePrice: data.closePrice,
-          highPrice: data.highPrice,
-          lowPrice: data.lowPrice,
-          volume: BigInt(data.volume),
-          marketCap: data.marketCap ? BigInt(data.marketCap) : null,
-          change: data.change,
-          changePercent: data.changePercent,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(data.date),
-          openPrice: data.openPrice,
-          closePrice: data.closePrice,
-          highPrice: data.highPrice,
-          lowPrice: data.lowPrice,
-          volume: BigInt(data.volume),
-          marketCap: data.marketCap ? BigInt(data.marketCap) : null,
-          change: data.change,
-          changePercent: data.changePercent
-        }
-      })
-      console.log(`[DB] KOSDAQ 데이터 저장 완료: ${data.date}`)
-    } catch (error) {
-      console.error(`[DB] KOSDAQ 데이터 저장 실패 (${data.date}):`, error)
+      console.error(`[DB] ${market} 데이터 저장 실패 (${date}):`, error)
       throw error
     }
   }
@@ -92,32 +44,23 @@ export class DatabaseService {
    * 투자자별 매매동향 데이터 저장
    */
   static async saveInvestorTradingData(data: InvestorTradingData): Promise<void> {
+    // Exclude id, createdAt, updatedAt
+    const { date, ...fields } = data;
     try {
       await prisma.investorTrading.upsert({
-        where: { date: new Date(data.date) },
+        where: { date: new Date(date) },
         update: {
-          foreignBuying: BigInt(data.foreignBuying),
-          foreignSelling: BigInt(data.foreignSelling),
-          individualBuying: BigInt(data.individualBuying),
-          individualSelling: BigInt(data.individualSelling),
-          institutionalBuying: BigInt(data.institutionalBuying),
-          institutionalSelling: BigInt(data.institutionalSelling),
+          ...fields,
           updatedAt: new Date()
         },
         create: {
-          date: new Date(data.date),
-          foreignBuying: BigInt(data.foreignBuying),
-          foreignSelling: BigInt(data.foreignSelling),
-          individualBuying: BigInt(data.individualBuying),
-          individualSelling: BigInt(data.individualSelling),
-          institutionalBuying: BigInt(data.institutionalBuying),
-          institutionalSelling: BigInt(data.institutionalSelling)
+          date: new Date(date),
+          ...fields
         }
       })
-      
-      console.log(`[DB] 투자자별 매매동향 저장 완료: ${data.date}`)
+      console.log(`[DB] 투자자별 매매동향 저장 완료: ${date}`)
     } catch (error) {
-      console.error(`[DB] 투자자별 매매동향 저장 실패 (${data.date}):`, error)
+      console.error(`[DB] 투자자별 매매동향 저장 실패 (${date}):`, error)
       throw error
     }
   }
@@ -378,7 +321,7 @@ export class DatabaseService {
    * KRX 데이터 일괄 저장
    */
   static async saveKRXData(date: string, data: {
-    kospi: KOSPIData | null
+    kospi: krxStockData | null
     trading: InvestorTradingData | null
     options: OptionData | null
   }): Promise<void> {
@@ -389,7 +332,7 @@ export class DatabaseService {
     try {
       // KOSPI 데이터 저장
       if (data.kospi) {
-        await this.saveKOSPIData(data.kospi)
+        await this.saveKRXStockData(data.kospi, 'KOSPI')
         recordCount++
       }
 

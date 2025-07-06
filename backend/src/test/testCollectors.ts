@@ -1,5 +1,5 @@
 import { KRXCollector } from '../collectors/krxCollector'
-import { BOKCollector } from '../collectors/bokCollector'
+import { BOKCollector } from '../collectors/bokCollector' 
 import { FearGreedCalculator } from '../services/fearGreedCalculator'
 
 /**
@@ -13,24 +13,27 @@ async function testCollectors() {
   try {
     // 1. KRX 데이터 수집 테스트
     console.log('📊 KRX 데이터 수집 테스트...')
-    const krxData = await KRXCollector.collectDailyData(testDate)
+    const krxKospiData = await KRXCollector.fetchKOSPIData(testDate)
+    const krxKosdaqData = await KRXCollector.fetchKOSDAQData(testDate)
+    const krxInvestorTradingData = await KRXCollector.fetchInvestorTradingData(testDate)
+    const krxOptionData = await KRXCollector.fetchOptionData(testDate)
     
     console.log('KRX 수집 결과:')
-    if (krxData.kospi) {
-      console.log(`  ✅ KOSPI: ${krxData.kospi.index} (${krxData.kospi.changePercent}%)`)
+    if (krxKospiData) {
+      console.log(`  ✅ KOSPI: ${krxKospiData.index} (${krxKospiData.changePercent}%)`)
     } else {
       console.log('  ❌ KOSPI 데이터 없음')
     }
     
-    if (krxData.trading) {
-      const foreignNet = krxData.trading.foreignBuying - krxData.trading.foreignSelling
+    if (krxInvestorTradingData) {
+      const foreignNet = krxInvestorTradingData.foreignBuying - krxInvestorTradingData.foreignSelling
       console.log(`  ✅ 외국인 순매수: ${foreignNet.toLocaleString()}원`)
     } else {
       console.log('  ❌ 투자자별 매매동향 데이터 없음')
     }
     
-    if (krxData.options) {
-      console.log(`  ✅ Put/Call 비율: ${krxData.options.putCallRatio.toFixed(2)}`)
+    if (krxOptionData) {
+      console.log(`  ✅ Put/Call 비율: ${krxOptionData.putCallRatio.toFixed(2)}`)
     } else {
       console.log('  ❌ 옵션 데이터 없음')
     }

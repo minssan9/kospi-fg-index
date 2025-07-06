@@ -17,7 +17,7 @@
     "test:basic": "dotenv -e .env -- node -r ts-node/register src/test/simpleTest.js",
     "test:collectors": "dotenv -e .env -- node -r ts-node/register src/test/testCollectors.ts",
     "test:system": "dotenv -e .env -- node -r ts-node/register src/test/systemTest.ts",
-    "collect:data": "dotenv -e .env -- node -r ts-node/register -e \"require('./src/collectors/krxCollector').KRXCollector.collectDailyData().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+    "collect:data": "dotenv -e .env -- npx ts-node -e \"import('./src/services/scheduler').then(m => m.collectDailyData())\"",
     "collect:historical": "dotenv -e .env -- npx ts-node -e \"import('./src/services/scheduler').then(m => m.collectHistoricalData('2025-01-16', '2025-01-31'))\"",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",

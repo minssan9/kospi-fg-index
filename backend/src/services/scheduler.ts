@@ -140,14 +140,39 @@ export async function collectDailyData(date?: string): Promise<void> {
   console.log(`[Manual] ${targetDate} 일일 데이터 수집을 시작합니다.`)
 
   try {
-    // 병렬로 데이터 수집
-    await Promise.all([
-      collectKRXData(targetDate),
-      collectBOKData(targetDate)
-    ])
+    // KRX 데이터 수집
+    await collectKRXData(targetDate).catch(error => {
+      console.error(`[Manual] ${targetDate} KRX 데이터 수집 실패:`, error)
+    })
+
+    // BOK 데이터 수집
+    await collectBOKData(targetDate).catch(error => {
+      console.error(`[Manual] ${targetDate} BOK 데이터 수집 실패:`, error)
+    })
+
+    // 외부 지수(Upbit, CNN, KoreaFG) 수집 및 저장
+    await (async () => {
+      try {
+        const [upbit, cnn, korea] = await Promise.all([
+          fetchUpbitIndexData(targetDate).catch(e => { console.error('[Upbit] 수집 실패:', e); return null }),
+          fetchCnnFearGreedIndexData(targetDate).catch(e => { console.error('[CNN] 수집 실패:', e); return null }),
+          fetchKoreaFGIndexData(targetDate).catch(e => { console.error('[KoreaFG] 수집 실패:', e); return null })
+        ])
+        await Promise.all([
+          upbit ? DatabaseService.saveUpbitIndexData(upbit).catch(e => console.error('[Upbit] 저장 실패:', e)) : Promise.resolve(),
+          cnn ? DatabaseService.saveCnnFearGreedIndexData(cnn).catch(e => console.error('[CNN] 저장 실패:', e)) : Promise.resolve(),
+          korea ? DatabaseService.saveKoreaFGIndexData(korea).catch(e => console.error('[KoreaFG] 저장 실패:', e)) : Promise.resolve()
+        ])
+        console.log('[Manual] 외부 지수(Upbit, CNN, KoreaFG) 수집 및 저장 완료')
+      } catch (error) {
+        console.error('[Manual] 외부 지수 수집/저장 실패:', error)
+      }
+    })()
 
     // Fear & Greed Index 계산
-    await calculateAndSaveFearGreedIndex(targetDate)
+    await calculateAndSaveFearGreedIndex(targetDate).catch(error => {
+      console.error(`[Manual] ${targetDate} Fear & Greed Index 계산 실패:`, error)
+    })
 
     console.log(`[Manual] ${targetDate} 일일 데이터 수집이 완료되었습니다.`)
 
@@ -171,8 +196,8 @@ async function collectKRXData(date?: string): Promise<void> {
 
     // 각각의 데이터를 병렬로 수집
     const [kospiData, kosdaqData, tradingData, optionData] = await Promise.all([
-      KRXCollector.fetchKOSPIData(targetDate),
-      KRXCollector.fetchKOSDAQData(targetDate),
+      KRXCollector.fetchKRXStockData(targetDate, 'KOSPI'),
+      KRXCollector.fetchKRXStockData(targetDate, 'KOSDAQ'),
       KRXCollector.fetchInvestorTradingData(targetDate),
       KRXCollector.fetchOptionData(targetDate).catch(err => {
         console.warn('[KRX] Option data collection skipped:', err.message)
@@ -186,15 +211,15 @@ async function collectKRXData(date?: string): Promise<void> {
       trading: tradingData,
       options: optionData
     })
-    if (kosdaqData) {
-      await DatabaseService.saveKOSDAQData(kosdaqData)
-      console.log(`  - KOSDAQ: ${kosdaqData.index} (${kosdaqData.changePercent}%) [저장됨]`)
+    if (kosdaqData) { 
+      console.log(`  - KOSDAQ: ${kosdaqData.stck_prpr} (${kosdaqData.prdy_ctrt}%) [저장됨]`)
     }
     if (kospiData) {
-      console.log(`  - KOSPI: ${kospiData.index} (${kospiData.changePercent}%)`)
+      console.log(`  - KOSPI: ${kospiData.stck_prpr} (${kospiData.prdy_ctrt}%)`)
     }
     if (tradingData) {
-      console.log(`  - 외국인 순매수: ${(tradingData.foreignBuying - tradingData.foreignSelling).toLocaleString()}원`)
+      // 외국인 순매수 수량 (frgn_ntby_qty)
+      console.log(`  - 외국인 순매수: ${Number(tradingData.frgn_ntby_qty).toLocaleString()}주`)
     }
     if (optionData) {
       console.log(`  - Put/Call 비율: ${optionData.putCallRatio.toFixed(2)}`)
@@ -395,5 +420,5 @@ export function getSchedulerStatus(): {
 }
 
 function getTodayDateString(): string {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toISOString().split('T')[0] || ''
 } 

@@ -1,40 +1,5 @@
 import axios from 'axios'
-
-// KRX API 데이터 타입 정의
-export interface KOSPIData {
-  date: string
-  index: number
-  change: number
-  changePercent: number
-  volume: number
-  value: number
-}
-
-export interface KOSDAQData {
-  date: string
-  index: number
-  change: number
-  changePercent: number
-  volume: number
-  value: number
-}
-
-export interface InvestorTradingData {
-  date: string
-  foreignBuying: number
-  foreignSelling: number
-  individualBuying: number
-  individualSelling: number
-  institutionalBuying: number
-  institutionalSelling: number
-}
-
-export interface OptionData {
-  date: string
-  putVolume: number
-  callVolume: number
-  putCallRatio: number
-}
+import type { krxStockData, InvestorTradingData, OptionData } from '@/types/krxTypes'
 
 export class KRXCollector {
   private static readonly BASE_URL = 'https://openapi.koreainvestment.com:9443'
@@ -106,66 +71,111 @@ export class KRXCollector {
   }
 
   /**
-   * KOSPI 지수 데이터 수집 (KIS OpenAPI)
+   * KRX 지수 데이터 수집 (KIS OpenAPI, KOSPI/KOSDAQ)
    */
-  static async fetchKOSPIData(date: string): Promise<KOSPIData> {
+  static async fetchKRXStockData(date: string, market: 'KOSPI' | 'KOSDAQ'): Promise<krxStockData> {
+    const marketCode = market === 'KOSPI' ? '0001' : '1001'
     try {
       const response = await axios.get(
         `${this.BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-price`,
         {
           params: {
             fid_cond_mrkt_div_code: 'U',
-            fid_input_iscd: '0001', // KOSPI
-          }, 
+            fid_input_iscd: marketCode,
+          },
           headers: await this.getHeaders('FHPUP02100000'),
           timeout: this.TIMEOUT,
         }
       )
       const data = response.data?.output
-      if (!data) throw new Error('No KOSPI data returned')
+      if (!data) throw new Error(`No ${market} data returned`)
       return {
         date,
-        index: parseFloat(data.stck_prpr), // 현재가
-        change: parseFloat(data.prdy_vrss), // 전일대비
-        changePercent: parseFloat(data.prdy_ctrt), // 등락률
-        volume: parseInt(data.acml_vol), // 누적거래량
-        value: parseInt(data.acml_tr_pbmn), // 누적거래대금
+        iscd_stat_cls_code: data.iscd_stat_cls_code ?? '',
+        marg_rate: data.marg_rate ?? '',
+        rprs_mrkt_kor_name: data.rprs_mrkt_kor_name ?? '',
+        new_hgpr_lwpr_cls_code: data.new_hgpr_lwpr_cls_code ?? '',
+        bstp_kor_isnm: data.bstp_kor_isnm ?? '',
+        temp_stop_yn: data.temp_stop_yn ?? '',
+        oprc_rang_cont_yn: data.oprc_rang_cont_yn ?? '',
+        clpr_rang_cont_yn: data.clpr_rang_cont_yn ?? '',
+        crdt_able_yn: data.crdt_able_yn ?? '',
+        grmn_rate_cls_code: data.grmn_rate_cls_code ?? '',
+        elw_pblc_yn: data.elw_pblc_yn ?? '',
+        stck_prpr: data.stck_prpr ?? '',
+        prdy_vrss: data.prdy_vrss ?? '',
+        prdy_vrss_sign: data.prdy_vrss_sign ?? '',
+        prdy_ctrt: data.prdy_ctrt ?? '',
+        acml_tr_pbmn: data.acml_tr_pbmn ?? '',
+        acml_vol: data.acml_vol ?? '',
+        prdy_vrss_vol_rate: data.prdy_vrss_vol_rate ?? '',
+        stck_oprc: data.stck_oprc ?? '',
+        stck_hgpr: data.stck_hgpr ?? '',
+        stck_lwpr: data.stck_lwpr ?? '',
+        stck_mxpr: data.stck_mxpr ?? '',
+        stck_llam: data.stck_llam ?? '',
+        stck_sdpr: data.stck_sdpr ?? '',
+        wghn_avrg_stck_prc: data.wghn_avrg_stck_prc ?? '',
+        hts_frgn_ehrt: data.hts_frgn_ehrt ?? '',
+        frgn_ntby_qty: data.frgn_ntby_qty ?? '',
+        pgtr_ntby_qty: data.pgtr_ntby_qty ?? '',
+        pvt_scnd_dmrs_prc: data.pvt_scnd_dmrs_prc ?? '',
+        pvt_frst_dmrs_prc: data.pvt_frst_dmrs_prc ?? '',
+        pvt_pont_val: data.pvt_pont_val ?? '',
+        pvt_frst_dmsp_prc: data.pvt_frst_dmsp_prc ?? '',
+        pvt_scnd_dmsp_prc: data.pvt_scnd_dmsp_prc ?? '',
+        dmrs_val: data.dmrs_val ?? '',
+        dmsp_val: data.dmsp_val ?? '',
+        cpfn: data.cpfn ?? '',
+        rstc_wdth_prc: data.rstc_wdth_prc ?? '',
+        stck_fcam: data.stck_fcam ?? '',
+        stck_sspr: data.stck_sspr ?? '',
+        aspr_unit: data.aspr_unit ?? '',
+        hts_deal_qty_unit_val: data.hts_deal_qty_unit_val ?? '',
+        lstn_stcn: data.lstn_stcn ?? '',
+        hts_avls: data.hts_avls ?? '',
+        per: data.per ?? '',
+        pbr: data.pbr ?? '',
+        stac_month: data.stac_month ?? '',
+        vol_tnrt: data.vol_tnrt ?? '',
+        eps: data.eps ?? '',
+        bps: data.bps ?? '',
+        d250_hgpr: data.d250_hgpr ?? '',
+        d250_hgpr_date: data.d250_hgpr_date ?? '',
+        d250_hgpr_vrss_prpr_rate: data.d250_hgpr_vrss_prpr_rate ?? '',
+        d250_lwpr: data.d250_lwpr ?? '',
+        d250_lwpr_date: data.d250_lwpr_date ?? '',
+        d250_lwpr_vrss_prpr_rate: data.d250_lwpr_vrss_prpr_rate ?? '',
+        stck_dryy_hgpr: data.stck_dryy_hgpr ?? '',
+        dryy_hgpr_vrss_prpr_rate: data.dryy_hgpr_vrss_prpr_rate ?? '',
+        dryy_hgpr_date: data.dryy_hgpr_date ?? '',
+        stck_dryy_lwpr: data.stck_dryy_lwpr ?? '',
+        dryy_lwpr_vrss_prpr_rate: data.dryy_lwpr_vrss_prpr_rate ?? '',
+        dryy_lwpr_date: data.dryy_lwpr_date ?? '',
+        w52_hgpr: data.w52_hgpr ?? '',
+        w52_hgpr_vrss_prpr_ctrt: data.w52_hgpr_vrss_prpr_ctrt ?? '',
+        w52_hgpr_date: data.w52_hgpr_date ?? '',
+        w52_lwpr: data.w52_lwpr ?? '',
+        w52_lwpr_vrss_prpr_ctrt: data.w52_lwpr_vrss_prpr_ctrt ?? '',
+        w52_lwpr_date: data.w52_lwpr_date ?? '',
+        whol_loan_rmnd_rate: data.whol_loan_rmnd_rate ?? '',
+        ssts_yn: data.ssts_yn ?? '',
+        stck_shrn_iscd: data.stck_shrn_iscd ?? '',
+        fcam_cnnm: data.fcam_cnnm ?? '',
+        cpfn_cnnm: data.cpfn_cnnm ?? '',
+        apprch_rate: data.apprch_rate ?? '',
+        frgn_hldn_qty: data.frgn_hldn_qty ?? '',
+        vi_cls_code: data.vi_cls_code ?? '',
+        ovtm_vi_cls_code: data.ovtm_vi_cls_code ?? '',
+        last_ssts_cntg_qty: data.last_ssts_cntg_qty ?? '',
+        invt_caful_yn: data.invt_caful_yn ?? '',
+        mrkt_warn_cls_code: data.mrkt_warn_cls_code ?? '',
+        short_over_yn: data.short_over_yn ?? '',
+        sltr_yn: data.sltr_yn ?? '',
+        mang_issu_cls_code: data.mang_issu_cls_code ?? ''
       }
     } catch (error) {
-      const errorMessage = `[KIS] KOSPI 데이터 수집 실패 (${date}): ${(error as any)?.message}`
-      console.error(errorMessage)
-      throw new Error(errorMessage)
-    }
-  }
-
-  /**
-   * KOSDAQ 지수 데이터 수집 (KIS OpenAPI)
-   */
-  static async fetchKOSDAQData(date: string): Promise<KOSDAQData> {
-    try {
-      const response = await axios.get(
-        `${this.BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-price`,
-        {
-          params: {
-            fid_cond_mrkt_div_code: 'U',
-            fid_input_iscd: '1001', // KOSDAQ
-          }, 
-          headers: await this.getHeaders('FHPUP02100000'),
-          timeout: this.TIMEOUT,
-        }
-      )
-      const data = response.data?.output
-      if (!data) throw new Error('No KOSDAQ data returned')
-      return {
-        date,
-        index: parseFloat(data.stck_prpr), // 현재가
-        change: parseFloat(data.prdy_vrss), // 전일대비
-        changePercent: parseFloat(data.prdy_ctrt), // 등락률
-        volume: parseInt(data.acml_vol), // 누적거래량
-        value: parseInt(data.acml_tr_pbmn), // 누적거래대금
-      }
-    } catch (error) {
-      const errorMessage = `[KIS] KOSDAQ 데이터 수집 실패 (${date}): ${(error as any)?.message}`
+      const errorMessage = `[KIS] ${market} 데이터 수집 실패 (${date}): ${(error as any)?.message}`
       console.error(errorMessage)
       throw new Error(errorMessage)
     }
@@ -198,23 +208,81 @@ export class KRXCollector {
       )
       const data = response.data?.output1[0] // output1 is an array
       if (!data) throw new Error(`No investor trading data returned for ${marketName}`)
-      
-      // KIS API는 순매수/순매도량을 제공, 우리는 매수/매도를 분리해야 함
-      // 여기서는 순매수량을 각 'buying' 필드에, 0을 'selling' 필드에 할당
-      // 이는 완벽한 데이터는 아니지만, Fear & Greed Index 계산 로직과 호환됨
-      // 순매수량 (양수: 순매수, 음수: 순매도)
-      const foreignNet = parseInt(data.frgn_ntby_qty || '0')
-      const individualNet = parseInt(data.prsn_ntby_qty || '0')
-      const institutionalNet = parseInt(data.orgn_ntby_qty || '0')
 
       return {
         date,
-        foreignBuying: foreignNet > 0 ? foreignNet : 0,
-        foreignSelling: foreignNet < 0 ? -foreignNet : 0,
-        individualBuying: individualNet > 0 ? individualNet : 0,
-        individualSelling: individualNet < 0 ? -individualNet : 0,
-        institutionalBuying: institutionalNet > 0 ? institutionalNet : 0,
-        institutionalSelling: institutionalNet < 0 ? -institutionalNet : 0,
+        frgn_seln_vol: data.frgn_seln_vol ?? '',
+        frgn_shnu_vol: data.frgn_shnu_vol ?? '',
+        frgn_ntby_qty: data.frgn_ntby_qty ?? '',
+        frgn_seln_tr_pbmn: data.frgn_seln_tr_pbmn ?? '',
+        frgn_shnu_tr_pbmn: data.frgn_shnu_tr_pbmn ?? '',
+        frgn_ntby_tr_pbmn: data.frgn_ntby_tr_pbmn ?? '',
+        prsn_seln_vol: data.prsn_seln_vol ?? '',
+        prsn_shnu_vol: data.prsn_shnu_vol ?? '',
+        prsn_ntby_qty: data.prsn_ntby_qty ?? '',
+        prsn_seln_tr_pbmn: data.prsn_seln_tr_pbmn ?? '',
+        prsn_shnu_tr_pbmn: data.prsn_shnu_tr_pbmn ?? '',
+        prsn_ntby_tr_pbmn: data.prsn_ntby_tr_pbmn ?? '',
+        orgn_seln_vol: data.orgn_seln_vol ?? '',
+        orgn_shnu_vol: data.orgn_shnu_vol ?? '',
+        orgn_ntby_qty: data.orgn_ntby_qty ?? '',
+        orgn_seln_tr_pbmn: data.orgn_seln_tr_pbmn ?? '',
+        orgn_shnu_tr_pbmn: data.orgn_shnu_tr_pbmn ?? '',
+        orgn_ntby_tr_pbmn: data.orgn_ntby_tr_pbmn ?? '',
+        scrt_seln_vol: data.scrt_seln_vol ?? '',
+        scrt_shnu_vol: data.scrt_shnu_vol ?? '',
+        scrt_ntby_qty: data.scrt_ntby_qty ?? '',
+        scrt_seln_tr_pbmn: data.scrt_seln_tr_pbmn ?? '',
+        scrt_shnu_tr_pbmn: data.scrt_shnu_tr_pbmn ?? '',
+        scrt_ntby_tr_pbmn: data.scrt_ntby_tr_pbmn ?? '',
+        ivtr_seln_vol: data.ivtr_seln_vol ?? '',
+        ivtr_shnu_vol: data.ivtr_shnu_vol ?? '',
+        ivtr_ntby_qty: data.ivtr_ntby_qty ?? '',
+        ivtr_seln_tr_pbmn: data.ivtr_seln_tr_pbmn ?? '',
+        ivtr_shnu_tr_pbmn: data.ivtr_shnu_tr_pbmn ?? '',
+        ivtr_ntby_tr_pbmn: data.ivtr_ntby_tr_pbmn ?? '',
+        pe_fund_seln_tr_pbmn: data.pe_fund_seln_tr_pbmn ?? '',
+        pe_fund_seln_vol: data.pe_fund_seln_vol ?? '',
+        pe_fund_ntby_vol: data.pe_fund_ntby_vol ?? '',
+        pe_fund_shnu_tr_pbmn: data.pe_fund_shnu_tr_pbmn ?? '',
+        pe_fund_shnu_vol: data.pe_fund_shnu_vol ?? '',
+        pe_fund_ntby_tr_pbmn: data.pe_fund_ntby_tr_pbmn ?? '',
+        bank_seln_vol: data.bank_seln_vol ?? '',
+        bank_shnu_vol: data.bank_shnu_vol ?? '',
+        bank_ntby_qty: data.bank_ntby_qty ?? '',
+        bank_seln_tr_pbmn: data.bank_seln_tr_pbmn ?? '',
+        bank_shnu_tr_pbmn: data.bank_shnu_tr_pbmn ?? '',
+        bank_ntby_tr_pbmn: data.bank_ntby_tr_pbmn ?? '',
+        insu_seln_vol: data.insu_seln_vol ?? '',
+        insu_shnu_vol: data.insu_shnu_vol ?? '',
+        insu_ntby_qty: data.insu_ntby_qty ?? '',
+        insu_seln_tr_pbmn: data.insu_seln_tr_pbmn ?? '',
+        insu_shnu_tr_pbmn: data.insu_shnu_tr_pbmn ?? '',
+        insu_ntby_tr_pbmn: data.insu_ntby_tr_pbmn ?? '',
+        mrbn_seln_vol: data.mrbn_seln_vol ?? '',
+        mrbn_shnu_vol: data.mrbn_shnu_vol ?? '',
+        mrbn_ntby_qty: data.mrbn_ntby_qty ?? '',
+        mrbn_seln_tr_pbmn: data.mrbn_seln_tr_pbmn ?? '',
+        mrbn_shnu_tr_pbmn: data.mrbn_shnu_tr_pbmn ?? '',
+        mrbn_ntby_tr_pbmn: data.mrbn_ntby_tr_pbmn ?? '',
+        fund_seln_vol: data.fund_seln_vol ?? '',
+        fund_shnu_vol: data.fund_shnu_vol ?? '',
+        fund_ntby_qty: data.fund_ntby_qty ?? '',
+        fund_seln_tr_pbmn: data.fund_seln_tr_pbmn ?? '',
+        fund_shnu_tr_pbmn: data.fund_shnu_tr_pbmn ?? '',
+        fund_ntby_tr_pbmn: data.fund_ntby_tr_pbmn ?? '',
+        etc_orgt_seln_vol: data.etc_orgt_seln_vol ?? '',
+        etc_orgt_shnu_vol: data.etc_orgt_shnu_vol ?? '',
+        etc_orgt_ntby_vol: data.etc_orgt_ntby_vol ?? '',
+        etc_orgt_seln_tr_pbmn: data.etc_orgt_seln_tr_pbmn ?? '',
+        etc_orgt_shnu_tr_pbmn: data.etc_orgt_shnu_tr_pbmn ?? '',
+        etc_orgt_ntby_tr_pbmn: data.etc_orgt_ntby_tr_pbmn ?? '',
+        etc_corp_seln_vol: data.etc_corp_seln_vol ?? '',
+        etc_corp_shnu_vol: data.etc_corp_shnu_vol ?? '',
+        etc_corp_ntby_vol: data.etc_corp_ntby_vol ?? '',
+        etc_corp_seln_tr_pbmn: data.etc_corp_seln_tr_pbmn ?? '',
+        etc_corp_shnu_tr_pbmn: data.etc_corp_shnu_tr_pbmn ?? '',
+        etc_corp_ntby_tr_pbmn: data.etc_corp_ntby_tr_pbmn ?? '',
       }
     } catch (error) {
       const errorMessage = `[KIS] ${marketName} 투자자별 매매동향 수집 실패 (${date}): ${
