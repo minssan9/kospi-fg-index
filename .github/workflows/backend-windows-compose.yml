@@ -29,12 +29,7 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Fix PowerShell execution policy
-      run: |
-        echo "Setting PowerShell execution policy..."
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        Get-ExecutionPolicy -List
+ 
 
     - name: Check Docker status
       run: |
@@ -42,45 +37,6 @@ jobs:
         docker --version
         docker info
         echo "Docker is running and accessible"
-
-    - name: Start Docker Desktop (if needed)
-      run: |
-        echo "Checking if Docker Desktop is running..."
-        $dockerProcesses = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
-        if ($dockerProcesses) {
-          Write-Host "Docker Desktop is already running" -ForegroundColor Green
-        } else {
-          Write-Host "Docker Desktop not running, attempting to start..."
-          try {
-            Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe" -ArgumentList "--start" -WindowStyle Minimized
-            Write-Host "Docker Desktop startup initiated"
-          } catch {
-            Write-Host "Could not start Docker Desktop automatically"
-            Write-Host "Please start Docker Desktop manually and re-run the workflow"
-          }
-        }
-        
-        # Wait for Docker to be ready
-        Write-Host "Waiting for Docker daemon to be ready..."
-        $maxAttempts = 30
-        $attempt = 1
-        while ($attempt -le $maxAttempts) {
-          try {
-            docker info | Out-Null
-            Write-Host "Docker is ready on attempt $attempt"
-            break
-          } catch {
-            Write-Host "Docker not ready on attempt $attempt, waiting..."
-            Start-Sleep -Seconds 2
-          }
-          $attempt++
-        }
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      with:
-        driver-opts: |
-          image=moby/buildkit:latest
 
     - name: Navigate to backend directory
       run: |
