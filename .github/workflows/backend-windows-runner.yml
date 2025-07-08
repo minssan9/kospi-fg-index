@@ -52,6 +52,7 @@ jobs:
         dir
 
     - name: Copy environment file from root
+      shell: cmd
       run: |
         echo "Copying environment file from system root..."
         if exist C:\\.env (
