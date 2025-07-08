@@ -24,7 +24,7 @@ This directory contains GitHub Actions workflows for deploying the KOSPI Fear & 
 
 ## Prerequisites
 
-### Windows Runner Setup
+### Windows Runner Setup (Windows)
 1. **Install Docker Desktop for Windows**
    ```powershell
    # Download and install from: https://www.docker.com/products/docker-desktop
@@ -42,6 +42,12 @@ This directory contains GitHub Actions workflows for deploying the KOSPI Fear & 
    # Ensure Docker is running and accessible
    docker --version
    docker-compose --version
+   ```
+
+4. **Register Self-Hosted Runner**
+   ```powershell
+   # The runner 'Windows' should be registered and running
+   # Check runner status in GitHub repository settings
    ```
 
 ### Environment Configuration
@@ -64,7 +70,7 @@ LOG_LEVEL=info
 ## Usage
 
 ### Automatic Triggers
-- **Push to main/develop**: Automatically triggers deployment when backend files change
+- **Push to main/master/develop**: Automatically triggers deployment when backend files change
 - **Pull Request**: Runs deployment for testing on PRs
 - **Manual Trigger**: Use the "workflow_dispatch" trigger with environment selection
 
@@ -157,6 +163,13 @@ The workflows expect the following health check endpoints:
    docker ps -a
    ```
 
+5. **Runner not available**
+   ```powershell
+   # Check if Windows runner is online
+   # Go to GitHub repository settings > Actions > Runners
+   # Ensure the runner is registered and running
+   ```
+
 ### Debug Commands
 
 ```powershell
@@ -178,6 +191,9 @@ docker exec -it kospi-backend sh
 
 # Check environment file
 type backend\.env
+
+# Check runner status
+# Go to GitHub repository settings > Actions > Runners
 ```
 
 ## Monitoring
@@ -186,6 +202,7 @@ type backend\.env
 - Backend API: `http://localhost:3000`
 - Redis: `localhost:6379`
 - Container logs: Available in GitHub Actions output
+- Runner: Windows
 
 ### Log Files
 - Application logs: Mounted to `./logs` directory
@@ -198,6 +215,7 @@ type backend\.env
 3. **Container Security**: Running containers as non-root user
 4. **Network Isolation**: Services run in isolated Docker networks
 5. **File Permissions**: Ensure `.env` file has appropriate permissions
+6. **Runner Security**: Windows runner should be properly secured
 
 ## Performance Optimization
 
@@ -232,4 +250,5 @@ For issues with the workflows:
 2. Verify all prerequisites are met
 3. Ensure Docker Desktop is running
 4. Check that the `.env` file exists in the system root
-5. Verify the `.env` file contains all required variables 
+5. Verify the `.env` file contains all required variables
+6. Ensure Windows runner is online and available 

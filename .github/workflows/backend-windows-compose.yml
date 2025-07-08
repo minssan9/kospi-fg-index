@@ -22,7 +22,7 @@ on:
 
 jobs:
   deploy-backend-compose:
-    runs-on: MINSSAN9-DESKTO
+    runs-on: Windows
     
     steps:
     - name: Checkout code
@@ -144,7 +144,7 @@ jobs:
         echo "Branch: ${{ github.ref_name }}"
         echo "Commit: ${{ github.sha }}"
         echo "Environment: ${{ github.event.inputs.environment || 'development' }}"
-        echo "Runner: MINSSAN9-DESKTO"
+        echo "Runner: Windows"
         echo "Backend URL: http://localhost:3000"
         echo "Redis URL: redis://localhost:6379"
         echo "Environment Source: Local .env file"
