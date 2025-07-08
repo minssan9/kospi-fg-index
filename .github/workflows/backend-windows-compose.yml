@@ -34,8 +34,7 @@ jobs:
     - name: Check Docker status
       run: |
         echo "Checking Docker status..."
-        docker --version
-        docker info
+        docker --version 
         echo "Docker is running and accessible"
 
     - name: Navigate to backend directory
