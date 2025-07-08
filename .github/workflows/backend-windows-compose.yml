@@ -23,6 +23,8 @@ on:
 jobs:
   deploy-backend-compose:
     runs-on: Windows
+    env:
+      OPENSSL_CONF: ""
     
     steps:
     - name: Checkout code
