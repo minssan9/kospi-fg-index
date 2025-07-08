@@ -48,10 +48,10 @@ jobs:
       run: |
         echo "Copying environment file from system root..."
         if exist C:\\.env (
-          copy C:\\.env backend\.env
+          copy C:\\.env\.env backend\.env
           echo "Environment file copied from C:\\.env"
-        ) else if exist D:\\.env (
-          copy D:\\.env backend\.env
+        ) else if exist D:\\.env\.env (
+          copy D:\\.env\.env backend\.env
           echo "Environment file copied from D:\\.env"
         ) else (
           echo "No .env file found in root directories, creating default..."
