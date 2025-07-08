@@ -30,6 +30,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Fix PowerShell execution policy
+      run: |
+        echo "Setting PowerShell execution policy..."
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        Get-ExecutionPolicy -List
+
     - name: Check Docker status
       run: |
         echo "Checking Docker status..."
@@ -39,16 +45,23 @@ jobs:
 
     - name: Start Docker Desktop (if needed)
       run: |
-        echo "Attempting to start Docker Desktop..."
-        try {
-          Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe" -ArgumentList "--start" -Wait -TimeoutSec 30
-          Write-Host "Docker Desktop started successfully"
-        } catch {
-          Write-Host "Could not start Docker Desktop automatically"
-          Write-Host "Please start Docker Desktop manually and re-run the workflow"
+        echo "Checking if Docker Desktop is running..."
+        $dockerProcesses = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
+        if ($dockerProcesses) {
+          Write-Host "Docker Desktop is already running" -ForegroundColor Green
+        } else {
+          Write-Host "Docker Desktop not running, attempting to start..."
+          try {
+            Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe" -ArgumentList "--start" -WindowStyle Minimized
+            Write-Host "Docker Desktop startup initiated"
+          } catch {
+            Write-Host "Could not start Docker Desktop automatically"
+            Write-Host "Please start Docker Desktop manually and re-run the workflow"
+          }
         }
         
         # Wait for Docker to be ready
+        Write-Host "Waiting for Docker daemon to be ready..."
         $maxAttempts = 30
         $attempt = 1
         while ($attempt -le $maxAttempts) {
