@@ -4,6 +4,7 @@ import { FearGreedCalculator } from '../services/fearGreedCalculator'
 import { KRXCollector } from '../collectors/krxCollector'
 import { BOKCollector } from '../collectors/bokCollector'
 import { formatDate } from '../utils/dateUtils'
+import { requireAdmin, requirePermission, AuthenticatedRequest } from '../middleware/adminAuth'
 
 const router = express.Router()
 
@@ -158,7 +159,7 @@ router.get('/system/collection-status', async (req, res) => {
  * POST /api/admin/collect-data
  * Body: { date: "2024-01-15", sources: ["KRX", "BOK"] }
  */
-router.post('/admin/collect-data', async (req, res) => {
+router.post('/admin/collect-data', requireAdmin, requirePermission('write'), async (req: AuthenticatedRequest, res) => {
   try {
     const { date, sources } = req.body
     const targetDate = date || formatDate(new Date())
@@ -170,7 +171,15 @@ router.post('/admin/collect-data', async (req, res) => {
       try {
         console.log(`[API] KRX 데이터 수집 시작: ${targetDate}`)
         const krxData = await KRXCollector.collectDailyData(targetDate)
-        await DatabaseService.saveKRXData(targetDate, krxData)
+        
+        // Transform data to match DatabaseService format
+        const transformedKrxData = {
+          kospi: krxData.kospiData,
+          trading: krxData.kospiInvestorTrading, // Use KOSPI trading data as primary
+          options: null // Options not supported yet
+        }
+        
+        await DatabaseService.saveKRXData(targetDate, transformedKrxData)
         results.push({
           source: 'KRX',
           status: 'SUCCESS',
@@ -228,7 +237,7 @@ router.post('/admin/collect-data', async (req, res) => {
  * POST /api/admin/calculate-index
  * Body: { date: "2024-01-15" }
  */
-router.post('/admin/calculate-index', async (req, res) => {
+router.post('/admin/calculate-index', requireAdmin, requirePermission('write'), async (req: AuthenticatedRequest, res) => {
   try {
     const { date } = req.body
     const targetDate = date || formatDate(new Date())

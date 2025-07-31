@@ -443,8 +443,596 @@ model KoreaFGIndexData {
   @@map("external_korea_fg_index_data")
 }
 
-model upbitIndexData {
-  date   DateTime @id
-  value  Float
-  updatedAt DateTime @updatedAt
+// ==================== AUTHENTICATION MODELS ====================
+
+// 관리자 사용자
+model AdminUser {
+  id                String   @id @default(cuid())
+  username          String   @unique
+  email             String?  @unique
+  passwordHash      String
+  role              AdminRole
+  permissions       String[] // JSON array of permissions
+  
+  // Security fields
+  isActive          Boolean  @default(true)
+  isLocked          Boolean  @default(false)
+  lockReason        String?
+  lockedAt          DateTime?
+  lockedUntil       DateTime?
+  failedAttempts    Int      @default(0)
+  lastFailedAt      DateTime?
+  
+  // Password policy
+  passwordChangedAt DateTime @default(now())
+  mustChangePassword Boolean @default(false)
+  
+  // MFA fields
+  mfaEnabled        Boolean  @default(false)
+  mfaSecret         String?
+  mfaBackupCodes    String[] // Encrypted backup codes
+  
+  // Metadata
+  firstName         String?
+  lastName          String?
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  sessions          AdminSession[]
+  refreshTokens     AdminRefreshToken[]
+  auditLogs         AdminAuditLog[]
+  loginAttempts     AdminLoginAttempt[]
+  
+  @@map("admin_users")
+}
+
+// 관리자 세션 관리
+model AdminSession {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionId   String   @unique
+  accessToken String   @unique
+  ipAddress   String
+  userAgent   String?
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime @default(now())
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  user        AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([accessToken])
+  @@map("admin_sessions")
+}
+
+// 리프레시 토큰 관리
+model AdminRefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  sessionId  String
+  isRevoked  Boolean  @default(false)
+  revokedAt  DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  
+  // Relations
+  user       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([token])
+  @@index([sessionId])
+  @@map("admin_refresh_tokens")
+}
+
+// 로그인 시도 추적
+model AdminLoginAttempt {
+  id         String   @id @default(cuid())
+  userId     String?  // null for failed attempts with unknown user
+  username   String
+  ipAddress  String
+  userAgent  String?
+  success    Boolean
+  failReason String?  // "INVALID_CREDENTIALS", "ACCOUNT_LOCKED", "MFA_REQUIRED", etc.
+  attemptedAt DateTime @default(now())
+  
+  // Relations
+  user       AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([username])
+  @@index([ipAddress])
+  @@index([attemptedAt])
+  @@map("admin_login_attempts")
+}
+
+// 보안 감사 로그
+model AdminAuditLog {
+  id          String    @id @default(cuid())
+  userId      String?
+  sessionId   String?
+  action      String    // "LOGIN", "LOGOUT", "PASSWORD_CHANGE", "PERMISSION_CHANGE", etc.
+  resource    String?   // What was accessed/modified
+  details     String?   @db.Text // JSON details
+  ipAddress   String
+  userAgent   String?
+  success     Boolean
+  riskLevel   AuditRiskLevel @default(LOW)
+  timestamp   DateTime  @default(now())
+  
+  // Relations
+  user        AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([riskLevel])
+  @@map("admin_audit_logs")
+}
+
+// 보안 설정
+model SecurityConfig {
+  id                    String   @id @default(cuid())
+  key                   String   @unique
+  value                 String   @db.Text
+  description           String?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@map("security_config")
+}
+
+// Rate limiting 추적
+model RateLimitRecord {
+  id         String   @id @default(cuid())
+  identifier String   // IP address or user ID
+  action     String   // "LOGIN", "API_CALL", etc.
+  attempts   Int      @default(1)
+  windowStart DateTime
+  windowEnd  DateTime
+  isBlocked  Boolean  @default(false)
+  
+  @@unique([identifier, action, windowStart])
+  @@index([identifier, action])
+  @@index([windowStart, windowEnd])
+  @@map("rate_limit_records")
+}
+
+// Enums
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  VIEWER
+  ANALYST
+}
+
+enum AuditRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ==================== NOTIFICATION & REPORTING MODELS ====================
+
+// 알림 채널 설정
+model NotificationChannel {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  type        NotificationChannelType
+  enabled     Boolean  @default(true)
+  
+  // Channel configuration (JSON)
+  config      String   @db.Text // JSON configuration for each channel type
+  
+  // Rate limiting
+  maxPerHour  Int      @default(100)
+  maxPerDay   Int      @default(1000)
+  
+  // Metadata
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  notifications NotificationLog[]
+  subscriptions NotificationSubscription[]
+  templates     NotificationTemplate[]
+  
+  @@map("notification_channels")
+}
+
+// 알림 구독 설정
+model NotificationSubscription {
+  id          String   @id @default(cuid())
+  userId      String?  // null for system-wide subscriptions
+  channelId   String
+  eventType   String   // "ALERT", "REPORT", "SYSTEM_STATUS", "DATA_COLLECTION", etc.
+  enabled     Boolean  @default(true)
+  
+  // Filtering criteria (JSON)
+  filters     String?  @db.Text // JSON filters for events
+  
+  // Schedule settings
+  immediateNotify Boolean @default(true)
+  digestSettings  String? @db.Text // JSON for digest settings
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  channel     NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user        AdminUser? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, channelId, eventType])
+  @@index([userId])
+  @@index([channelId])
+  @@index([eventType])
+  @@map("notification_subscriptions")
+}
+
+// 알림 템플릿
+model NotificationTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  channelId   String
+  eventType   String
+  
+  // Template content
+  subject     String?
+  body        String   @db.Text
+  htmlBody    String?  @db.Text
+  
+  // Template variables (JSON array)
+  variables   String   @db.Text // JSON array of variable names
+  
+  // Metadata
+  description String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  channel     NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  notifications NotificationLog[]
+  
+  @@index([channelId])
+  @@index([eventType])
+  @@map("notification_templates")
+}
+
+// 알림 전송 로그
+model NotificationLog {
+  id            String   @id @default(cuid())
+  channelId     String
+  templateId    String?
+  recipient     String   // Email, phone, Slack channel, etc.
+  eventType     String
+  eventId       String?  // Reference to the event that triggered the notification
+  
+  // Message content
+  subject       String?
+  body          String   @db.Text
+  metadata      String?  @db.Text // JSON metadata
+  
+  // Delivery status
+  status        NotificationStatus @default(PENDING)
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  failedAt      DateTime?
+  errorMessage  String?  @db.Text
+  retryCount    Int      @default(0)
+  maxRetries    Int      @default(3)
+  nextRetryAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  channel       NotificationChannel @relation(fields: [channelId], references: [id])
+  template      NotificationTemplate? @relation(fields: [templateId], references: [id])
+  
+  @@index([channelId])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notification_logs")
+}
+
+// 보고서 정의
+model ReportDefinition {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String?
+  category      ReportCategory
+  
+  // Report configuration
+  dataSource    String   // JSON configuration for data sources
+  parameters    String   @db.Text // JSON parameters schema
+  template      String   @db.Text // Report template (JSON or SQL)
+  
+  // Format settings
+  supportedFormats String[] // ["PDF", "CSV", "EXCEL", "JSON"]
+  defaultFormat    String   @default("PDF")
+  
+  // Schedule settings
+  isScheduled      Boolean  @default(false)
+  cronExpression   String?
+  timezone         String   @default("Asia/Seoul")
+  
+  // Access control
+  requiredRole     AdminRole @default(VIEWER)
+  isPublic         Boolean   @default(false)
+  
+  // Metadata
+  isActive         Boolean   @default(true)
+  createdBy        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // Relations
+  creator          AdminUser? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  executions       ReportExecution[]
+  schedules        ReportSchedule[]
+  
+  @@index([category])
+  @@index([isScheduled])
+  @@index([createdBy])
+  @@map("report_definitions")
+}
+
+// 보고서 실행 기록
+model ReportExecution {
+  id             String   @id @default(cuid())
+  reportId       String
+  executedBy     String?
+  
+  // Execution parameters
+  parameters     String?  @db.Text // JSON parameters used
+  format         String
+  
+  // Execution status
+  status         ReportExecutionStatus @default(PENDING)
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  failedAt       DateTime?
+  errorMessage   String?  @db.Text
+  
+  // Output information
+  fileName       String?
+  filePath       String?
+  fileSize       Int?     // in bytes
+  rowCount       Int?     // number of rows/records
+  
+  // Metadata
+  executionTime  Int?     // in milliseconds
+  metadata       String?  @db.Text // JSON metadata
+  
+  // Relations
+  report         ReportDefinition @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  executor       AdminUser? @relation(fields: [executedBy], references: [id], onDelete: SetNull)
+  
+  @@index([reportId])
+  @@index([executedBy])
+  @@index([status])
+  @@index([startedAt])
+  @@map("report_executions")
+}
+
+// 예약된 보고서 작업
+model ReportSchedule {
+  id              String   @id @default(cuid())
+  reportId        String
+  name            String
+  
+  // Schedule configuration
+  cronExpression  String
+  timezone        String   @default("Asia/Seoul")
+  parameters      String?  @db.Text // JSON default parameters
+  format          String   @default("PDF")
+  
+  // Notification settings
+  notifyOnSuccess Boolean  @default(true)
+  notifyOnFailure Boolean  @default(true)
+  recipients      String[] // Email addresses or user IDs
+  
+  // Status
+  isActive        Boolean  @default(true)
+  lastRunAt       DateTime?
+  nextRunAt       DateTime?
+  consecutiveFailures Int  @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  report          ReportDefinition @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+  @@index([reportId])
+  @@index([isActive])
+  @@index([nextRunAt])
+  @@map("report_schedules")
+}
+
+// 데이터 내보내기 요청
+model DataExportRequest {
+  id             String   @id @default(cuid())
+  requestedBy    String
+  
+  // Export configuration
+  dataType       String   // "FEAR_GREED_INDEX", "MARKET_DATA", "ALERTS", etc.
+  format         String   // "CSV", "EXCEL", "JSON", "PDF"
+  dateRange      String   @db.Text // JSON date range
+  filters        String?  @db.Text // JSON filters
+  
+  // Status
+  status         ExportStatus @default(PENDING)
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  failedAt       DateTime?
+  errorMessage   String?  @db.Text
+  
+  // Output
+  fileName       String?
+  filePath       String?
+  fileSize       Int?     // in bytes
+  recordCount    Int?
+  downloadCount  Int      @default(0)
+  expiresAt      DateTime? // When the file expires
+  
+  // Relations
+  requester      AdminUser @relation(fields: [requestedBy], references: [id], onDelete: Cascade)
+  
+  @@index([requestedBy])
+  @@index([status])
+  @@index([startedAt])
+  @@map("data_export_requests")
+}
+
+// 시스템 인사이트 및 추천
+model SystemInsight {
+  id            String   @id @default(cuid())
+  type          InsightType
+  category      String   // "PERFORMANCE", "SECURITY", "DATA_QUALITY", "BUSINESS"
+  
+  // Insight content
+  title         String
+  description   String   @db.Text
+  severity      InsightSeverity
+  confidence    Int      // 0-100 confidence score
+  
+  // Data and analysis
+  dataSource    String   // What data was analyzed
+  analysisDate  DateTime
+  affectedPeriod String? @db.Text // JSON time period analyzed
+  metrics       String   @db.Text // JSON metrics and values
+  
+  // Recommendations
+  recommendations String @db.Text // JSON array of recommendations
+  actionItems     String @db.Text // JSON array of action items
+  
+  // Status
+  status        InsightStatus @default(NEW)
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+  resolvedAt    DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  acknowledger  AdminUser? @relation(fields: [acknowledgedBy], references: [id], onDelete: SetNull)
+  
+  @@index([type])
+  @@index([category])
+  @@index([severity])
+  @@index([status])
+  @@index([analysisDate])
+  @@map("system_insights")
+}
+
+// WebSocket 연결 추적
+model WebSocketConnection {
+  id            String   @id @default(cuid())
+  sessionId     String   @unique
+  userId        String?
+  socketId      String   @unique
+  
+  // Connection info
+  ipAddress     String
+  userAgent     String?
+  
+  // Status
+  isActive      Boolean  @default(true)
+  connectedAt   DateTime @default(now())
+  lastPingAt    DateTime @default(now())
+  disconnectedAt DateTime?
+  
+  // Metadata
+  subscriptions String   @db.Text // JSON array of subscribed channels
+  
+  // Relations
+  user          AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([isActive])
+  @@index([connectedAt])
+  @@map("websocket_connections")
+}
+
+// Enums for notification and reporting
+enum NotificationChannelType {
+  EMAIL
+  SLACK
+  TEAMS
+  WEBHOOK
+  SMS
+  PUSH
+  WEBSOCKET
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  RETRYING
+}
+
+enum ReportCategory {
+  SYSTEM_STATUS
+  DATA_QUALITY
+  BUSINESS_METRICS
+  SECURITY_AUDIT
+  PERFORMANCE
+  COMPLIANCE
+  CUSTOM
+}
+
+enum ReportExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum InsightType {
+  TREND_ANALYSIS
+  ANOMALY_DETECTION
+  PERFORMANCE_OPTIMIZATION
+  SECURITY_RECOMMENDATION
+  DATA_QUALITY_ISSUE
+  BUSINESS_OPPORTUNITY
+}
+
+enum InsightSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum InsightStatus {
+  NEW
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
 }

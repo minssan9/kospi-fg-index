@@ -301,55 +301,62 @@ export class KRXCollector {
   }
 
   /**
-   * 일일 데이터 수집 (모든 KRX 데이터 수집)
+   * 특정 날짜의 모든 KRX 데이터 수집
    */
   static async collectDailyData(date: string): Promise<{
-    kospi: krxStockData | null
-    trading: InvestorTradingData | null
-    options: OptionData | null
+    kospiData: krxStockData | null
+    kosdaqData: krxStockData | null
+    kospiInvestorTrading: InvestorTradingData | null
+    kosdaqInvestorTrading: InvestorTradingData | null
   }> {
-    console.log(`[KRX] 일일 데이터 수집 시작: ${date}`)
+    console.log(`[KRX] ${date} 일일 데이터 수집 시작`)
     
     const results = {
-      kospi: null as krxStockData | null,
-      trading: null as InvestorTradingData | null,
-      options: null as OptionData | null
+      kospiData: null as krxStockData | null,
+      kosdaqData: null as krxStockData | null,
+      kospiInvestorTrading: null as InvestorTradingData | null,
+      kosdaqInvestorTrading: null as InvestorTradingData | null
     }
 
     try {
-      // KOSPI 데이터 수집
+      // KOSPI 지수 데이터 수집
       try {
-        console.log(`[KRX] KOSPI 데이터 수집 중...`)
-        results.kospi = await this.fetchKRXStockData(date, 'KOSPI')
-        console.log(`[KRX] KOSPI 데이터 수집 완료`)
+        results.kospiData = await this.fetchKRXStockData(date, 'KOSPI')
+        console.log(`[KRX] KOSPI 지수 데이터 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[KRX] KOSPI 데이터 수집 실패:`, error)
+        console.error(`[KRX] KOSPI 지수 데이터 수집 실패 (${date}):`, (error as any)?.message)
       }
 
-      // 투자자별 매매동향 데이터 수집
+      // KOSDAQ 지수 데이터 수집
       try {
-        console.log(`[KRX] 투자자별 매매동향 데이터 수집 중...`)
-        results.trading = await this.fetchInvestorTradingData(date, 'KOSPI')
-        console.log(`[KRX] 투자자별 매매동향 데이터 수집 완료`)
+        results.kosdaqData = await this.fetchKRXStockData(date, 'KOSDAQ')
+        console.log(`[KRX] KOSDAQ 지수 데이터 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[KRX] 투자자별 매매동향 데이터 수집 실패:`, error)
+        console.error(`[KRX] KOSDAQ 지수 데이터 수집 실패 (${date}):`, (error as any)?.message)
       }
 
-      // 옵션 데이터 수집 (현재 지원되지 않음)
+      // KOSPI 투자자별 매매동향 수집
       try {
-        console.log(`[KRX] 옵션 데이터 수집 중...`)
-        results.options = await this.fetchOptionData(date)
-        console.log(`[KRX] 옵션 데이터 수집 완료`)
+        results.kospiInvestorTrading = await this.fetchInvestorTradingData(date, 'KOSPI')
+        console.log(`[KRX] KOSPI 투자자별 매매동향 수집 완료: ${date}`)
       } catch (error) {
-        console.error(`[KRX] 옵션 데이터 수집 실패 (예상됨):`, (error as any).message)
+        console.error(`[KRX] KOSPI 투자자별 매매동향 수집 실패 (${date}):`, (error as any)?.message)
       }
 
-      console.log(`[KRX] 일일 데이터 수집 완료: ${date}`)
+      // KOSDAQ 투자자별 매매동향 수집
+      try {
+        results.kosdaqInvestorTrading = await this.fetchInvestorTradingData(date, 'KOSDAQ')
+        console.log(`[KRX] KOSDAQ 투자자별 매매동향 수집 완료: ${date}`)
+      } catch (error) {
+        console.error(`[KRX] KOSDAQ 투자자별 매매동향 수집 실패 (${date}):`, (error as any)?.message)
+      }
+
+      console.log(`[KRX] ${date} 일일 데이터 수집 완료`)
       return results
 
     } catch (error) {
-      console.error(`[KRX] 일일 데이터 수집 중 오류 발생:`, error)
-      throw error
+      console.error(`[KRX] ${date} 일일 데이터 수집 중 오류:`, (error as any)?.message)
+      return results
     }
   }
 

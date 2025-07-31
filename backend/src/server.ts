@@ -13,6 +13,7 @@ dotenv.config();
 import apiRoutes from './routes/api';
 import fearGreedRoutes from './routes/fearGreed';
 import dataRoutes from './routes/data';
+import adminRoutes from './routes/admin';
 
 // 미들웨어 import
 import { errorHandler } from './middleware/errorHandler';
@@ -74,6 +75,7 @@ app.get('/health', (req, res) => {
 app.use('/api', apiRoutes);
 app.use('/api/fear-greed', fearGreedRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {

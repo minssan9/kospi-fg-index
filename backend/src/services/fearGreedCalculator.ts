@@ -143,9 +143,9 @@ export class FearGreedCalculator {
 
       // 20일/120일 이동평균 계산
       const ma20 = historicalData.slice(0, 20).reduce((sum, data) => 
-        sum + Number(data.stck_prpr), 0) / 20
+        sum + Number(data.stck_prpr || 0), 0) / 20
       const ma120 = historicalData.reduce((sum, data) => 
-        sum + Number(data.stck_prpr), 0) / historicalData.length
+        sum + Number(data.stck_prpr || 0), 0) / historicalData.length
 
       // 모멘텀 점수 계산 (MA20이 MA120 대비 ±10% 범위를 0-100으로 변환)
       const momentum = ((ma20 / ma120 - 0.9) * 500)
