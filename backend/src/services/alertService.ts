@@ -387,7 +387,7 @@ export class AlertService extends EventEmitter {
 
       const metricsContext = {
         ...this.flattenObject(systemMetrics, 'system'),
-        ...this.flattenObject(dbMetrics, 'database'),
+        ...this.flattenObject(dbMetrics, 'db'),
         ...this.flattenObject(businessMetrics, 'business')
       }
 

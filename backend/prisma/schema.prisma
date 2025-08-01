@@ -452,7 +452,7 @@ model AdminUser {
   email             String?  @unique
   passwordHash      String
   role              AdminRole
-  permissions       String[] // JSON array of permissions
+  permissions       String   @db.Text // JSON array of permissions
   
   // Security fields
   isActive          Boolean  @default(true)
@@ -470,7 +470,7 @@ model AdminUser {
   // MFA fields
   mfaEnabled        Boolean  @default(false)
   mfaSecret         String?
-  mfaBackupCodes    String[] // Encrypted backup codes
+  mfaBackupCodes    String   @db.Text // JSON array of encrypted backup codes
   
   // Metadata
   firstName         String?
@@ -485,6 +485,12 @@ model AdminUser {
   refreshTokens     AdminRefreshToken[]
   auditLogs         AdminAuditLog[]
   loginAttempts     AdminLoginAttempt[]
+  notificationSubscriptions NotificationSubscription[]
+  createdReports    ReportDefinition[] @relation("ReportCreator")
+  executedReports   ReportExecution[] @relation("ReportExecutor")
+  dataExportRequests DataExportRequest[]
+  acknowledgedInsights SystemInsight[]
+  webSocketConnections WebSocketConnection[]
   
   @@map("admin_users")
 }
@@ -761,7 +767,7 @@ model ReportDefinition {
   template      String   @db.Text // Report template (JSON or SQL)
   
   // Format settings
-  supportedFormats String[] // ["PDF", "CSV", "EXCEL", "JSON"]
+  supportedFormats String   @db.Text // JSON array ["PDF", "CSV", "EXCEL", "JSON"]
   defaultFormat    String   @default("PDF")
   
   // Schedule settings
@@ -780,7 +786,7 @@ model ReportDefinition {
   updatedAt        DateTime  @updatedAt
   
   // Relations
-  creator          AdminUser? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  creator          AdminUser? @relation("ReportCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   executions       ReportExecution[]
   schedules        ReportSchedule[]
   
@@ -819,7 +825,7 @@ model ReportExecution {
   
   // Relations
   report         ReportDefinition @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  executor       AdminUser? @relation(fields: [executedBy], references: [id], onDelete: SetNull)
+  executor       AdminUser? @relation("ReportExecutor", fields: [executedBy], references: [id], onDelete: SetNull)
   
   @@index([reportId])
   @@index([executedBy])
@@ -843,7 +849,7 @@ model ReportSchedule {
   // Notification settings
   notifyOnSuccess Boolean  @default(true)
   notifyOnFailure Boolean  @default(true)
-  recipients      String[] // Email addresses or user IDs
+  recipients      String   @db.Text // JSON array of email addresses or user IDs
   
   // Status
   isActive        Boolean  @default(true)

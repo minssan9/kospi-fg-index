@@ -35,34 +35,6 @@ export interface CalculateIndexResponse {
   }
 }
 
-export interface SystemHealth {
-  database: {
-    status: 'HEALTHY' | 'WARNING' | 'ERROR'
-    responseTime: number
-    connections: number
-  }
-  api: {
-    status: 'HEALTHY' | 'WARNING' | 'ERROR'
-    responseTime: number
-    uptime: string
-  }
-  dataCollection: {
-    lastRun: string
-    status: 'RUNNING' | 'IDLE' | 'ERROR'
-    successRate: number
-  }
-}
-
-export interface PerformanceMetrics {
-  cpu: number
-  memory: number
-  diskUsage: number
-  networkIO: {
-    inbound: number
-    outbound: number
-  }
-}
-
 export interface AdminUser {
   id: string
   username: string
@@ -130,18 +102,6 @@ export const adminApi = {
     }
   },
 
-  async getCollectionStatus(days: number = 7): Promise<any[]> {
-    try {
-      const response = await api.get<{ success: boolean; data: any[] }>(
-        `/system/collection-status?days=${days}`
-      )
-      return response.data.data
-    } catch (error) {
-      console.error('Failed to get collection status:', error)
-      return []
-    }
-  },
-
   // Fear & Greed 계산 관리
   async calculateIndex(request: CalculateIndexRequest): Promise<CalculateIndexResponse> {
     try {
@@ -166,92 +126,6 @@ export const adminApi = {
     } catch (error) {
       console.error('Range recalculation failed:', error)
       throw new Error('범위 재계산에 실패했습니다.')
-    }
-  },
-
-  // 시스템 모니터링
-  async getSystemHealth(): Promise<SystemHealth> {
-    try {
-      const response = await api.get<{ success: boolean; data: SystemHealth }>('/admin/system-health')
-      return response.data.data
-    } catch (error) {
-      console.error('Failed to get system health:', error)
-      // Return mock data for development
-      return {
-        database: {
-          status: 'HEALTHY',
-          responseTime: 45,
-          connections: 12
-        },
-        api: {
-          status: 'HEALTHY',
-          responseTime: 120,
-          uptime: '7d 12h 30m'
-        },
-        dataCollection: {
-          lastRun: new Date().toISOString(),
-          status: 'IDLE',
-          successRate: 95.6
-        }
-      }
-    }
-  },
-
-  async getPerformanceMetrics(): Promise<PerformanceMetrics> {
-    try {
-      const response = await api.get<{ success: boolean; data: PerformanceMetrics }>('/admin/performance-metrics')
-      return response.data.data
-    } catch (error) {
-      console.error('Failed to get performance metrics:', error)
-      // Return mock data for development
-      return {
-        cpu: Math.floor(Math.random() * 40) + 10,
-        memory: Math.floor(Math.random() * 30) + 40,
-        diskUsage: Math.floor(Math.random() * 20) + 60,
-        networkIO: {
-          inbound: Math.floor(Math.random() * 1000) + 500,
-          outbound: Math.floor(Math.random() * 800) + 200
-        }
-      }
-    }
-  },
-
-  // 시스템 제어
-  async restartService(serviceName: string): Promise<void> {
-    try {
-      await api.post(`/admin/restart-service/${serviceName}`)
-    } catch (error) {
-      console.error(`Failed to restart service ${serviceName}:`, error)
-      throw new Error(`${serviceName} 서비스 재시작에 실패했습니다.`)
-    }
-  },
-
-  async clearCache(): Promise<void> {
-    try {
-      await api.post('/admin/clear-cache')
-    } catch (error) {
-      console.error('Failed to clear cache:', error)
-      throw new Error('캐시 삭제에 실패했습니다.')
-    }
-  },
-
-  // 설정 관리
-  async getSystemConfig(): Promise<Record<string, any>> {
-    try {
-      const response = await api.get<{ success: boolean; data: Record<string, any> }>('/admin/system-config')
-      return response.data.data
-    } catch (error) {
-      console.error('Failed to get system config:', error)
-      return {}
-    }
-  },
-
-  async updateSystemConfig(config: Record<string, any>): Promise<void> {
-    try {
-      await api.put('/admin/system-config', config)
-    } catch (error) {
-      console.error('Failed to update system config:', error)
-      throw new Error('시스템 설정 업데이트에 실패했습니다.')
     }
   }
 }

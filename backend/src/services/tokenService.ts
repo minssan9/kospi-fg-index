@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken'
-import crypto from 'crypto'
+import * as jwt from 'jsonwebtoken'
+import * as crypto from 'crypto'
 import { PrismaClient } from '@prisma/client'
 import { Request } from 'express'
 
@@ -66,7 +66,7 @@ export class TokenService {
       expiresIn: ACCESS_TOKEN_EXPIRY,
       issuer: 'kospi-fg-index',
       audience: 'admin-panel'
-    })
+    } as jwt.SignOptions)
 
     const refreshToken = jwt.sign(
       { userId, sessionId, type: 'refresh' },
@@ -75,7 +75,7 @@ export class TokenService {
         expiresIn: REFRESH_TOKEN_EXPIRY,
         issuer: 'kospi-fg-index',
         audience: 'admin-panel'
-      }
+      } as jwt.SignOptions
     )
 
     // Calculate expiry dates
@@ -225,7 +225,7 @@ export class TokenService {
         storedRefreshToken.user.id,
         storedRefreshToken.user.username,
         storedRefreshToken.user.role,
-        storedRefreshToken.user.permissions,
+        JSON.parse(storedRefreshToken.user.permissions || '[]'),
         ipAddress,
         session.userAgent || undefined
       )

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
-import jwt from 'jsonwebtoken'
-import bcrypt from 'bcrypt'
+import * as jwt from 'jsonwebtoken'
+import * as bcrypt from 'bcrypt'
 import { PrismaClient, AdminRole } from '@prisma/client'
 import TokenService, { TokenValidationResult } from '../services/tokenService'
 import SessionService from '../services/sessionService'
@@ -15,10 +15,10 @@ const prisma = new PrismaClient()
 export interface AdminUser {
   id: string
   username: string
-  email?: string
+  email?: string | undefined
   role: AdminRole
   permissions: string[]
-  lastLogin?: Date
+  lastLogin?: Date | undefined
   mfaEnabled: boolean
   isActive: boolean
   isLocked: boolean
@@ -213,7 +213,7 @@ export async function enhancedLogin(req: Request, loginData: LoginRequest): Prom
       user.id,
       user.username,
       user.role,
-      user.permissions,
+      JSON.parse(user.permissions || '[]'),
       ipAddress,
       userAgent
     )
@@ -231,7 +231,7 @@ export async function enhancedLogin(req: Request, loginData: LoginRequest): Prom
       username: user.username,
       email: user.email || undefined,
       role: user.role,
-      permissions: user.permissions,
+      permissions: JSON.parse(user.permissions || '[]'),
       lastLogin: user.lastLoginAt || undefined,
       mfaEnabled: user.mfaEnabled,
       isActive: user.isActive,
@@ -434,7 +434,7 @@ async function enhancedAuthMiddleware(
       username: user.username,
       email: user.email || undefined,
       role: user.role,
-      permissions: user.permissions,
+      permissions: JSON.parse(user.permissions || '[]'),
       lastLogin: user.lastLoginAt || undefined,
       mfaEnabled: user.mfaEnabled,
       isActive: user.isActive,

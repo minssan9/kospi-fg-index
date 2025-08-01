@@ -1,6 +1,6 @@
-import express from 'express'
+import * as express from 'express'
 import { Request, Response } from 'express'
-import os from 'os'
+import * as os from 'os'
 import { performance } from 'perf_hooks'
 import { DatabaseService } from '../services/databaseService'
 import { FearGreedCalculator } from '../services/fearGreedCalculator'
@@ -8,1136 +8,123 @@ import { KRXCollector } from '../collectors/krxCollector'
 import { BOKCollector } from '../collectors/bokCollector'
 import { formatDate } from '../utils/dateUtils'
 import { 
-  enhancedLogin,
-  enhancedLogout,
+  authenticateAdmin, 
+  generateToken, 
+  verifyToken,
   requireAdmin, 
   requirePermission,
   requireAdminRole,
-  requireMfaVerification,
-  securityHeaders,
-  AuthenticatedRequest,
-  LoginRequest 
+  AuthenticatedRequest 
 } from '../middleware/adminAuth'
-import TokenService from '../services/tokenService'
-import SessionService from '../services/sessionService'
-import RateLimitService from '../services/rateLimitService'
-import PasswordPolicyService from '../services/passwordPolicyService'
-import MfaService from '../services/mfaService'
-import AuditService from '../services/auditService'
-import { PrismaClient, AdminRole } from '@prisma/client'
-
-// Enhanced monitoring services
-import MonitoringService from '../services/monitoringService'
-import AlertService from '../services/alertService'
-import BusinessMetricsService from '../services/businessMetricsService'
-import DatabaseHealthService from '../services/databaseHealthService'
 
 const router = express.Router()
-const prisma = new PrismaClient()
-
-// Apply security headers to all admin routes
-router.use(securityHeaders)
 
 // ============================================================================
 // AUTHENTICATION ROUTES
 // ============================================================================
 
 /**
- * Enhanced Admin Login
+ * Admin Login
  * POST /api/admin/login
- * Body: { username: string, password: string, mfaToken?: string, rememberMe?: boolean }
+ * Body: { username: string, password: string }
  */
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const loginData: LoginRequest = {
-      username: req.body.username,
-      password: req.body.password,
-      mfaToken: req.body.mfaToken,
-      rememberMe: req.body.rememberMe
-    }
+    const { username, password } = req.body
 
     // Validate input
-    if (!loginData.username || !loginData.password) {
+    if (!username || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Username and password are required.',
+        message: '사용자명과 비밀번호를 입력해주세요.',
         code: 'MISSING_CREDENTIALS'
       })
     }
 
-    // Use enhanced login
-    const loginResult = await enhancedLogin(req, loginData)
-    
-    if (loginResult.success && loginResult.data) {
-      // Set refresh token in httpOnly cookie
-      res.cookie('refreshToken', loginResult.data.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    // Authenticate user
+    const user = await authenticateAdmin(username, password)
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: '잘못된 사용자명 또는 비밀번호입니다.',
+        code: 'INVALID_CREDENTIALS'
       })
     }
 
-    return res.status(loginResult.success ? 200 : 401).json(loginResult)
+    // Generate JWT token
+    const token = generateToken(user)
+
+    // Log successful login
+    console.log(`[Admin] Successful login: ${username} at ${new Date().toISOString()}`)
+
+    return res.json({
+      success: true,
+      message: '로그인 성공',
+      data: {
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          permissions: user.permissions,
+          lastLogin: user.lastLogin
+        }
+      }
+    })
   } catch (error) {
     console.error('[Admin] Login error:', error)
     return res.status(500).json({
       success: false,
-      message: 'Login processing error occurred.',
+      message: '로그인 처리 중 오류가 발생했습니다.',
       code: 'LOGIN_ERROR'
     })
   }
 })
 
 /**
- * Enhanced Admin Logout
- * POST /api/admin/logout
+ * Validate Token
+ * POST /api/admin/validate-token
+ * Body: { token: string }
  */
-router.post('/logout', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/validate-token', async (req: Request, res: Response) => {
   try {
-    const logoutResult = await enhancedLogout(req)
-    
-    // Clear refresh token cookie
-    res.clearCookie('refreshToken')
-    
-    return res.json(logoutResult)
-  } catch (error) {
-    console.error('[Admin] Logout error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Logout error occurred.',
-      code: 'LOGOUT_ERROR'
-    })
-  }
-})
+    const { token } = req.body
 
-/**
- * Refresh Access Token
- * POST /api/admin/refresh
- */
-router.post('/refresh', async (req: Request, res: Response) => {
-  try {
-    const refreshToken = req.cookies.refreshToken || req.headers['x-refresh-token'] as string
-    
-    if (!refreshToken) {
-      return res.status(401).json({
+    if (!token) {
+      return res.status(400).json({
         success: false,
-        message: 'Refresh token required.',
-        code: 'MISSING_REFRESH_TOKEN'
+        message: '토큰이 필요합니다.',
+        code: 'MISSING_TOKEN'
       })
     }
 
-    const ipAddress = TokenService.extractIpAddress(req)
-    const newTokenPair = await TokenService.refreshAccessToken(refreshToken, ipAddress)
-    
-    if (!newTokenPair) {
+    const user = verifyToken(token)
+    if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid or expired refresh token.',
-        code: 'INVALID_REFRESH_TOKEN'
+        message: '유효하지 않은 토큰입니다.',
+        code: 'INVALID_TOKEN'
       })
     }
 
-    // Update refresh token cookie
-    res.cookie('refreshToken', newTokenPair.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    })
-
     return res.json({
       success: true,
-      message: 'Token refreshed successfully.',
-      data: {
-        accessToken: newTokenPair.accessToken,
-        expiresAt: newTokenPair.expiresAt
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Token refresh error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Token refresh error occurred.',
-      code: 'REFRESH_ERROR'
-    })
-  }
-})
-
-/**
- * Get Current User Profile
- * GET /api/admin/me
- */
-router.get('/me', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const user = req.admin!
-    const sessions = await SessionService.getUserActiveSessions(user.id)
-    const mfaStatus = await MfaService.getMfaStatus(user.id)
-    const passwordStatus = await PasswordPolicyService.needsPasswordChange(user.id)
-
-    return res.json({
-      success: true,
+      message: '토큰 검증 성공',
       data: {
         user: {
           id: user.id,
           username: user.username,
-          email: user.email,
           role: user.role,
-          permissions: user.permissions,
-          lastLogin: user.lastLogin,
-          mfaEnabled: user.mfaEnabled,
-          isActive: user.isActive,
-          mustChangePassword: user.mustChangePassword
-        },
-        sessions: {
-          active: sessions.length,
-          current: req.sessionId
-        },
-        mfa: mfaStatus,
-        password: passwordStatus
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Get profile error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to get user profile.',
-      code: 'PROFILE_ERROR'
-    })
-  }
-})
-
-// ============================================================================
-// USER MANAGEMENT ROUTES (Admin Only)
-// ============================================================================
-
-/**
- * Get All Admin Users
- * GET /api/admin/users?page=1&limit=20&search=username&role=ADMIN
- */
-router.get('/users', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100)
-    const search = req.query.search as string
-    const role = req.query.role as AdminRole
-    const offset = (page - 1) * limit
-
-    const whereClause: any = {}
-    
-    if (search) {
-      whereClause.OR = [
-        { username: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } }
-      ]
-    }
-    
-    if (role) {
-      whereClause.role = role
-    }
-
-    const [users, total] = await Promise.all([
-      prisma.adminUser.findMany({
-        where: whereClause,
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          role: true,
-          permissions: true,
-          isActive: true,
-          isLocked: true,
-          mfaEnabled: true,
-          firstName: true,
-          lastName: true,
-          lastLoginAt: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              sessions: {
-                where: {
-                  isActive: true,
-                  expiresAt: { gt: new Date() }
-                }
-              }
-            }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit
-      }),
-      prisma.adminUser.count({ where: whereClause })
-    ])
-
-    await AuditService.logAdmin(
-      'USERS_LISTED',
-      req,
-      req.admin!.id,
-      undefined,
-      true,
-      { page, limit, search, role, total }
-    )
-
-    return res.json({
-      success: true,
-      data: {
-        users: users.map(user => ({
-          ...user,
-          activeSessions: user._count.sessions
-        })),
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit),
-          hasNext: offset + limit < total,
-          hasPrev: page > 1
+          permissions: user.permissions
         }
       }
     })
   } catch (error) {
-    console.error('[Admin] Get users error:', error)
+    console.error('[Admin] Token validation error:', error)
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve users.',
-      code: 'USERS_GET_ERROR'
-    })
-  }
-})
-
-/**
- * Create New Admin User
- * POST /api/admin/users
- * Body: { username, email?, password, role, permissions?, firstName?, lastName? }
- */
-router.post('/users', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const {
-      username,
-      email,
-      password,
-      role,
-      permissions = [],
-      firstName,
-      lastName
-    } = req.body
-
-    // Validate required fields
-    if (!username || !password || !role) {
-      return res.status(400).json({
-        success: false,
-        message: 'Username, password, and role are required.',
-        code: 'MISSING_REQUIRED_FIELDS'
-      })
-    }
-
-    // Validate role
-    if (!['SUPER_ADMIN', 'ADMIN', 'VIEWER', 'ANALYST'].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role specified.',
-        code: 'INVALID_ROLE'
-      })
-    }
-
-    // Check if username already exists
-    const existingUser = await prisma.adminUser.findUnique({
-      where: { username }
-    })
-
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'Username already exists.',
-        code: 'USERNAME_EXISTS'
-      })
-    }
-
-    // Check if email already exists (if provided)
-    if (email) {
-      const existingEmail = await prisma.adminUser.findUnique({
-        where: { email }
-      })
-
-      if (existingEmail) {
-        return res.status(409).json({
-          success: false,
-          message: 'Email already exists.',
-          code: 'EMAIL_EXISTS'
-        })
-      }
-    }
-
-    // Validate password
-    const passwordValidation = await PasswordPolicyService.validatePassword(
-      password,
-      { username, email, firstName, lastName }
-    )
-
-    if (!passwordValidation.valid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password does not meet policy requirements.',
-        code: 'INVALID_PASSWORD',
-        errors: passwordValidation.errors
-      })
-    }
-
-    // Hash password
-    const hashedPassword = await PasswordPolicyService.hashPassword(password)
-
-    // Create user
-    const newUser = await prisma.adminUser.create({
-      data: {
-        username,
-        email: email || null,
-        passwordHash: hashedPassword,
-        role,
-        permissions,
-        firstName: firstName || null,
-        lastName: lastName || null,
-        isActive: true,
-        mustChangePassword: true // Force password change on first login
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        permissions: true,
-        isActive: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true
-      }
-    })
-
-    await AuditService.logAdmin(
-      'USER_CREATED',
-      req,
-      req.admin!.id,
-      newUser.id,
-      true,
-      { username, role, permissions }
-    )
-
-    return res.status(201).json({
-      success: true,
-      message: 'User created successfully.',
-      data: { user: newUser }
-    })
-  } catch (error) {
-    console.error('[Admin] Create user error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to create user.',
-      code: 'USER_CREATE_ERROR'
-    })
-  }
-})
-
-/**
- * Get Specific Admin User
- * GET /api/admin/users/:id
- */
-router.get('/users/:id', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params
-
-    const user = await prisma.adminUser.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        permissions: true,
-        isActive: true,
-        isLocked: true,
-        lockReason: true,
-        lockedUntil: true,
-        mfaEnabled: true,
-        firstName: true,
-        lastName: true,
-        lastLoginAt: true,
-        lastLoginIp: true,
-        failedAttempts: true,
-        passwordChangedAt: true,
-        mustChangePassword: true,
-        createdAt: true,
-        updatedAt: true,
-        sessions: {
-          where: {
-            isActive: true,
-            expiresAt: { gt: new Date() }
-          },
-          select: {
-            id: true,
-            sessionId: true,
-            ipAddress: true,
-            userAgent: true,
-            lastUsedAt: true,
-            createdAt: true,
-            expiresAt: true
-          },
-          orderBy: { lastUsedAt: 'desc' }
-        },
-        loginAttempts: {
-          orderBy: { attemptedAt: 'desc' },
-          take: 10,
-          select: {
-            id: true,
-            ipAddress: true,
-            userAgent: true,
-            success: true,
-            failReason: true,
-            attemptedAt: true
-          }
-        }
-      }
-    })
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-        code: 'USER_NOT_FOUND'
-      })
-    }
-
-    // Get MFA status
-    const mfaStatus = await MfaService.getMfaStatus(user.id)
-    const passwordStatus = await PasswordPolicyService.needsPasswordChange(user.id)
-
-    await AuditService.logAdmin(
-      'USER_VIEWED',
-      req,
-      req.admin!.id,
-      user.id,
-      true
-    )
-
-    return res.json({
-      success: true,
-      data: {
-        user: {
-          ...user,
-          mfa: mfaStatus,
-          password: passwordStatus
-        }
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Get user error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve user.',
-      code: 'USER_GET_ERROR'
-    })
-  }
-})
-
-/**
- * Update Admin User
- * PUT /api/admin/users/:id
- * Body: { email?, role?, permissions?, firstName?, lastName?, isActive? }
- */
-router.put('/users/:id', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params
-    const {
-      email,
-      role,
-      permissions,
-      firstName,
-      lastName,
-      isActive
-    } = req.body
-
-    // Check if user exists
-    const existingUser = await prisma.adminUser.findUnique({
-      where: { id },
-      select: { id: true, username: true, role: true }
-    })
-
-    if (!existingUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-        code: 'USER_NOT_FOUND'
-      })
-    }
-
-    // Prevent self-modification of critical fields
-    if (id === req.admin!.id) {
-      if (role && role !== existingUser.role) {
-        return res.status(403).json({
-          success: false,
-          message: 'Cannot modify your own role.',
-          code: 'SELF_ROLE_MODIFICATION'
-        })
-      }
-      if (isActive === false) {
-        return res.status(403).json({
-          success: false,
-          message: 'Cannot deactivate your own account.',
-          code: 'SELF_DEACTIVATION'
-        })
-      }
-    }
-
-    // Validate role if provided
-    if (role && !['SUPER_ADMIN', 'ADMIN', 'VIEWER', 'ANALYST'].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role specified.',
-        code: 'INVALID_ROLE'
-      })
-    }
-
-    // Check if email already exists (if provided and different)
-    if (email) {
-      const existingEmail = await prisma.adminUser.findFirst({
-        where: {
-          email,
-          id: { not: id }
-        }
-      })
-
-      if (existingEmail) {
-        return res.status(409).json({
-          success: false,
-          message: 'Email already exists.',
-          code: 'EMAIL_EXISTS'
-        })
-      }
-    }
-
-    // Update user
-    const updatedUser = await prisma.adminUser.update({
-      where: { id },
-      data: {
-        ...(email !== undefined && { email }),
-        ...(role !== undefined && { role }),
-        ...(permissions !== undefined && { permissions }),
-        ...(firstName !== undefined && { firstName }),
-        ...(lastName !== undefined && { lastName }),
-        ...(isActive !== undefined && { isActive })
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        permissions: true,
-        isActive: true,
-        firstName: true,
-        lastName: true,
-        updatedAt: true
-      }
-    })
-
-    // If user was deactivated, terminate all sessions
-    if (isActive === false) {
-      await TokenService.revokeAllUserTokens(id)
-    }
-
-    await AuditService.logAdmin(
-      'USER_UPDATED',
-      req,
-      req.admin!.id,
-      id,
-      true,
-      { changes: { email, role, permissions, firstName, lastName, isActive } }
-    )
-
-    return res.json({
-      success: true,
-      message: 'User updated successfully.',
-      data: { user: updatedUser }
-    })
-  } catch (error) {
-    console.error('[Admin] Update user error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to update user.',
-      code: 'USER_UPDATE_ERROR'
-    })
-  }
-})
-
-/**
- * Delete Admin User
- * DELETE /api/admin/users/:id
- */
-router.delete('/users/:id', requireAdmin, requireAdminRole(), requireMfaVerification(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params
-
-    // Check if user exists
-    const existingUser = await prisma.adminUser.findUnique({
-      where: { id },
-      select: { id: true, username: true, role: true }
-    })
-
-    if (!existingUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-        code: 'USER_NOT_FOUND'
-      })
-    }
-
-    // Prevent self-deletion
-    if (id === req.admin!.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot delete your own account.',
-        code: 'SELF_DELETION'
-      })
-    }
-
-    // Revoke all user sessions first
-    await TokenService.revokeAllUserTokens(id)
-
-    // Delete user (cascade will handle related records)
-    await prisma.adminUser.delete({
-      where: { id }
-    })
-
-    await AuditService.logAdmin(
-      'USER_DELETED',
-      req,
-      req.admin!.id,
-      id,
-      true,
-      { deletedUser: { username: existingUser.username, role: existingUser.role } }
-    )
-
-    return res.json({
-      success: true,
-      message: 'User deleted successfully.'
-    })
-  } catch (error) {
-    console.error('[Admin] Delete user error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to delete user.',
-      code: 'USER_DELETE_ERROR'
-    })
-  }
-})
-
-/**
- * Lock/Unlock User Account
- * PATCH /api/admin/users/:id/lock
- * Body: { action: 'lock' | 'unlock', reason?: string, durationHours?: number }
- */
-router.patch('/users/:id/lock', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params
-    const { action, reason, durationHours } = req.body
-
-    if (!['lock', 'unlock'].includes(action)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid action. Must be "lock" or "unlock".',
-        code: 'INVALID_ACTION'
-      })
-    }
-
-    // Check if user exists
-    const user = await prisma.adminUser.findUnique({
-      where: { id },
-      select: { id: true, username: true, isLocked: true }
-    })
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-        code: 'USER_NOT_FOUND'
-      })
-    }
-
-    // Prevent self-locking
-    if (id === req.admin!.id && action === 'lock') {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot lock your own account.',
-        code: 'SELF_LOCK'
-      })
-    }
-
-    if (action === 'lock') {
-      await RateLimitService.lockUserAccount(id, reason || 'Admin action', durationHours)
-    } else {
-      await RateLimitService.unlockUserAccount(id, reason || 'Admin action')
-    }
-
-    await AuditService.logAdmin(
-      action === 'lock' ? 'USER_LOCKED' : 'USER_UNLOCKED',
-      req,
-      req.admin!.id,
-      id,
-      true,
-      { reason, durationHours }
-    )
-
-    return res.json({
-      success: true,
-      message: `User ${action}ed successfully.`,
-      data: {
-        userId: id,
-        action,
-        reason,
-        timestamp: new Date().toISOString()
-      }
-    })
-  } catch (error) {
-    console.error(`[Admin] ${req.body.action} user error:`, error)
-    return res.status(500).json({
-      success: false,
-      message: `Failed to ${req.body.action} user.`,
-      code: 'USER_LOCK_ERROR'
-    })
-  }
-})
-
-/**
- * Reset User Password
- * PATCH /api/admin/users/:id/reset-password
- * Body: { newPassword: string, forceChange?: boolean }
- */
-router.patch('/users/:id/reset-password', requireAdmin, requireAdminRole(), requireMfaVerification(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params
-    const { newPassword, forceChange = true } = req.body
-
-    if (!newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password is required.',
-        code: 'MISSING_PASSWORD'
-      })
-    }
-
-    // Check if user exists
-    const user = await prisma.adminUser.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        firstName: true,
-        lastName: true
-      }
-    })
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-        code: 'USER_NOT_FOUND'
-      })
-    }
-
-    // Update password using policy service
-    const result = await PasswordPolicyService.updateUserPassword(id, newPassword, {
-      username: user.username,
-      email: user.email || undefined,
-      firstName: user.firstName || undefined,
-      lastName: user.lastName || undefined
-    })
-
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password update failed.',
-        code: 'PASSWORD_UPDATE_FAILED',
-        errors: result.errors
-      })
-    }
-
-    // Force password change on next login if requested
-    if (forceChange) {
-      await prisma.adminUser.update({
-        where: { id },
-        data: { mustChangePassword: true }
-      })
-    }
-
-    // Revoke all user sessions to force re-login
-    await TokenService.revokeAllUserTokens(id)
-
-    await AuditService.logAdmin(
-      'PASSWORD_RESET_ADMIN',
-      req,
-      req.admin!.id,
-      id,
-      true,
-      { forceChange, resetBy: req.admin!.username }
-    )
-
-    return res.json({
-      success: true,
-      message: 'Password reset successfully.',
-      data: {
-        userId: id,
-        forceChange,
-        timestamp: new Date().toISOString()
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Reset password error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to reset password.',
-      code: 'PASSWORD_RESET_ERROR'
-    })
-  }
-})
-
-/**
- * Terminate User Sessions
- * POST /api/admin/users/:id/terminate-sessions
- * Body: { sessionId?: string, all?: boolean }
- */
-router.post('/users/:id/terminate-sessions', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params
-    const { sessionId, all = false } = req.body
-
-    // Check if user exists
-    const user = await prisma.adminUser.findUnique({
-      where: { id },
-      select: { id: true, username: true }
-    })
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-        code: 'USER_NOT_FOUND'
-      })
-    }
-
-    let terminatedCount = 0
-
-    if (all) {
-      // Terminate all sessions
-      const success = await TokenService.revokeAllUserTokens(id)
-      if (success) {
-        const sessions = await SessionService.getUserActiveSessions(id)
-        terminatedCount = sessions.length
-      }
-    } else if (sessionId) {
-      // Terminate specific session
-      const success = await SessionService.terminateSession(sessionId, id, 'ADMIN_TERMINATED')
-      if (success) {
-        terminatedCount = 1
-      }
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Either sessionId or all=true must be specified.',
-        code: 'INVALID_TERMINATION_REQUEST'
-      })
-    }
-
-    await AuditService.logAdmin(
-      'SESSIONS_TERMINATED',
-      req,
-      req.admin!.id,
-      id,
-      true,
-      { sessionId, all, terminatedCount }
-    )
-
-    return res.json({
-      success: true,
-      message: `${terminatedCount} session(s) terminated successfully.`,
-      data: {
-        userId: id,
-        terminatedCount,
-        timestamp: new Date().toISOString()
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Terminate sessions error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to terminate sessions.',
-      code: 'SESSION_TERMINATION_ERROR'
-    })
-  }
-})
-
-// ============================================================================
-// SESSION MANAGEMENT ROUTES
-// ============================================================================
-
-/**
- * Get User Sessions
- * GET /api/admin/sessions?userId=:id
- */
-router.get('/sessions', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.query.userId as string || req.admin!.id
-    
-    // Only allow viewing own sessions unless admin role
-    if (userId !== req.admin!.id && !['SUPER_ADMIN', 'ADMIN'].includes(req.admin!.role)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Insufficient permissions to view other user sessions.',
-        code: 'INSUFFICIENT_PERMISSIONS'
-      })
-    }
-
-    const sessions = await SessionService.getUserActiveSessions(userId)
-    const stats = await SessionService.getSessionStats()
-
-    return res.json({
-      success: true,
-      data: {
-        sessions,
-        stats,
-        currentSession: req.sessionId
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Get sessions error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve sessions.',
-      code: 'SESSIONS_GET_ERROR'
-    })
-  }
-})
-
-// ============================================================================
-// SECURITY & AUDIT ROUTES
-// ============================================================================
-
-/**
- * Get Audit Logs
- * GET /api/admin/audit-logs?page=1&limit=50&userId=&action=&riskLevel=&success=
- */
-router.get('/audit-logs', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 1000)
-    const userId = req.query.userId as string
-    const action = req.query.action as string
-    const riskLevel = req.query.riskLevel as any
-    const success = req.query.success !== undefined ? req.query.success === 'true' : undefined
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined
-
-    const filters = {
-      userId,
-      action,
-      riskLevel,
-      success,
-      startDate,
-      endDate,
-      limit,
-      offset: (page - 1) * limit
-    }
-
-    const result = await AuditService.searchLogs(filters)
-
-    return res.json({
-      success: true,
-      data: {
-        logs: result.logs,
-        pagination: {
-          page,
-          limit,
-          total: result.total,
-          pages: Math.ceil(result.total / limit),
-          hasMore: result.hasMore
-        }
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Get audit logs error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve audit logs.',
-      code: 'AUDIT_LOGS_ERROR'
-    })
-  }
-})
-
-/**
- * Get Security Alerts
- * GET /api/admin/security-alerts?hours=24
- */
-router.get('/security-alerts', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const hours = Math.min(parseInt(req.query.hours as string) || 24, 168) // Max 7 days
-    
-    const alerts = await AuditService.getSecurityAlerts(hours)
-    const suspiciousActivity = await RateLimitService.detectSuspiciousActivity()
-    
-    return res.json({
-      success: true,
-      data: {
-        alerts,
-        suspiciousActivity,
-        timeRange: hours
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Get security alerts error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve security alerts.',
-      code: 'SECURITY_ALERTS_ERROR'
-    })
-  }
-})
-
-/**
- * Get Login Attempts
- * GET /api/admin/login-attempts?username=&ipAddress=&success=&hours=24&limit=100
- */
-router.get('/login-attempts', requireAdmin, requireAdminRole(), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const username = req.query.username as string
-    const ipAddress = req.query.ipAddress as string
-    const success = req.query.success !== undefined ? req.query.success === 'true' : undefined
-    const hours = Math.min(parseInt(req.query.hours as string) || 24, 168) // Max 7 days
-    const limit = Math.min(parseInt(req.query.limit as string) || 100, 1000)
-
-    const filters = {
-      username,
-      ipAddress,
-      success,
-      timeRangeHours: hours,
-      limit
-    }
-
-    const attempts = await RateLimitService.getLoginAttempts(filters)
-
-    return res.json({
-      success: true,
-      data: {
-        attempts,
-        filters
-      }
-    })
-  } catch (error) {
-    console.error('[Admin] Get login attempts error:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve login attempts.',
-      code: 'LOGIN_ATTEMPTS_ERROR'
+      message: '토큰 검증 중 오류가 발생했습니다.',
+      code: 'VALIDATION_ERROR'
     })
   }
 })
@@ -1222,72 +209,56 @@ router.get('/system-health', requireAdmin, async (_req: AuthenticatedRequest, re
 })
 
 /**
- * Real-time System Performance Metrics
+ * Performance Metrics
  * GET /api/admin/performance-metrics
  */
 router.get('/performance-metrics', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
   try {
-    const systemMetrics = await MonitoringService.collectSystemMetrics()
-    
+    // CPU usage (mock calculation)
+    const cpuUsage = Math.floor(Math.random() * 40) + 20
+
+    // Memory usage
+    const memUsed = process.memoryUsage()
+    const totalMem = os.totalmem()
+    const freeMem = os.freemem()
+    const memoryUsage = Math.round(((totalMem - freeMem) / totalMem) * 100)
+
+    // Disk usage (mock)
+    const diskUsage = Math.floor(Math.random() * 30) + 50
+
+    // Network I/O (mock)
+    const networkIO = {
+      inbound: Math.floor(Math.random() * 1000) + 500,  // bytes/sec
+      outbound: Math.floor(Math.random() * 800) + 200   // bytes/sec
+    }
+
     const metricsData = {
-      timestamp: systemMetrics.timestamp,
-      cpu: {
-        usage: systemMetrics.cpu.usage,
-        loadAverage: systemMetrics.cpu.loadAverage,
-        cores: systemMetrics.cpu.cores,
-        status: systemMetrics.cpu.usage > 80 ? 'HIGH' : systemMetrics.cpu.usage > 60 ? 'MEDIUM' : 'LOW'
-      },
-      memory: {
-        heapUsed: Math.round(systemMetrics.memory.heapUsed / 1024 / 1024), // MB
-        heapTotal: Math.round(systemMetrics.memory.heapTotal / 1024 / 1024), // MB
-        heapUtilization: systemMetrics.memory.heapUtilization,
-        systemMemory: {
-          total: Math.round(systemMetrics.memory.systemMemory.total / 1024 / 1024 / 1024), // GB
-          used: Math.round(systemMetrics.memory.systemMemory.used / 1024 / 1024 / 1024), // GB
-          utilization: systemMetrics.memory.systemMemory.utilization
-        },
-        status: systemMetrics.memory.systemMemory.utilization > 85 ? 'HIGH' : 
-                systemMetrics.memory.systemMemory.utilization > 70 ? 'MEDIUM' : 'LOW'
-      },
-      database: {
-        health: systemMetrics.database.health,
-        responseTime: systemMetrics.database.responseTime,
-        connectionPool: systemMetrics.database.connectionPool,
-        queryPerformance: systemMetrics.database.queryPerformance
-      },
-      api: {
-        requestCount: systemMetrics.api.requestCount,
-        averageResponseTime: systemMetrics.api.averageResponseTime,
-        errorRate: systemMetrics.api.errorRate,
-        throughput: systemMetrics.api.throughput,
-        slowEndpoints: systemMetrics.api.slowEndpoints
-      },
-      gc: {
-        collections: systemMetrics.gc.collections,
-        gcTime: systemMetrics.gc.gcTime,
-        heapGrowthRate: systemMetrics.gc.heapGrowthRate,
-        memoryLeakIndicator: systemMetrics.gc.memoryLeakIndicator
-      },
+      cpu: cpuUsage,
+      memory: memoryUsage,
+      diskUsage: diskUsage,
+      networkIO: networkIO,
       processInfo: {
         pid: process.pid,
         uptime: process.uptime(),
         nodeVersion: process.version,
-        platform: os.platform(),
-        arch: os.arch()
+        memoryUsage: {
+          rss: Math.round(memUsed.rss / 1024 / 1024), // MB
+          heapTotal: Math.round(memUsed.heapTotal / 1024 / 1024), // MB
+          heapUsed: Math.round(memUsed.heapUsed / 1024 / 1024), // MB
+          external: Math.round(memUsed.external / 1024 / 1024) // MB
+        }
       }
     }
 
     return res.json({
       success: true,
-      data: metricsData,
-      timestamp: new Date().toISOString()
+      data: metricsData
     })
   } catch (error) {
     console.error('[Admin] Performance metrics failed:', error)
     return res.status(500).json({
       success: false,
-      message: '성능 지표 조회 중 오류가 발생했습니다.',
-      code: 'PERFORMANCE_METRICS_ERROR'
+      message: '성능 지표 조회 중 오류가 발생했습니다.'
     })
   }
 })
@@ -1690,7 +661,7 @@ router.put('/system-config', requireAdmin, requireAdminRole, async (req: Authent
     // Validate Fear & Greed weights if provided
     if (config.fearGreedCalculator?.componentWeights) {
       const weights = config.fearGreedCalculator.componentWeights
-      const totalWeight = Object.values(weights).reduce((sum: number, weight: any) => sum + (Number(weight) || 0), 0)
+      const totalWeight = Object.values(weights).reduce((sum: number, weight: any) => sum + (Number(weight) || 0), 0 as number)
       
       if (Math.abs(totalWeight - 100) > 0.1) {
         return res.status(400).json({
