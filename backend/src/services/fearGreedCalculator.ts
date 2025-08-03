@@ -143,9 +143,9 @@ export class FearGreedCalculator {
 
       // 20일/120일 이동평균 계산
       const ma20 = historicalData.slice(0, 20).reduce((sum, data) => 
-        sum + Number(data.index), 0) / 20
+        sum + Number(data.stck_prpr), 0) / 20
       const ma120 = historicalData.reduce((sum, data) => 
-        sum + Number(data.index), 0) / historicalData.length
+        sum + Number(data.stck_prpr), 0) / historicalData.length
 
       // 모멘텀 점수 계산 (MA20이 MA120 대비 ±10% 범위를 0-100으로 변환)
       const momentum = ((ma20 / ma120 - 0.9) * 500)
@@ -181,16 +181,18 @@ export class FearGreedCalculator {
       }
 
       // 외국인과 기관의 순매수 합산
-      let totalNetBuying = 0n
+      let totalNetBuying = 0
       tradingData.forEach(data => {
-        const foreignNet = data.foreignBuying - data.foreignSelling
-        const institutionalNet = data.institutionalBuying - data.institutionalSelling
+        // 외국인 순매수 = 매수 - 매도 (거래대금 기준)
+        const foreignNet = Number(data.frgn_shnu_tr_pbmn || 0) - Number(data.frgn_seln_tr_pbmn || 0)
+        // 기관 순매수 = 매수 - 매도 (거래대금 기준)
+        const institutionalNet = Number(data.orgn_shnu_tr_pbmn || 0) - Number(data.orgn_seln_tr_pbmn || 0)
         totalNetBuying += foreignNet + institutionalNet
       })
 
       // 순매수를 0-100 점수로 변환 (±10조원 범위)
-      const maxRange = 10000000000000n // 10조원
-      const score = Number((totalNetBuying + maxRange) * 100n / (maxRange * 2n))
+      const maxRange = 10000000000000 // 10조원
+      const score = ((totalNetBuying + maxRange) * 100) / (maxRange * 2)
       return Math.max(0, Math.min(100, score))
 
     } catch (error) {
