@@ -13,3 +13,5 @@ frontend/package-lock.json
 **/.env
 **/.env.*
 
+.DS_Store
+*.iml

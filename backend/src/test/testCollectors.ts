@@ -13,20 +13,20 @@ async function testCollectors() {
   try {
     // 1. KRX 데이터 수집 테스트
     console.log('📊 KRX 데이터 수집 테스트...')
-    const krxKospiData = await KRXCollector.fetchKOSPIData(testDate)
-    const krxKosdaqData = await KRXCollector.fetchKOSDAQData(testDate)
+    const krxKospiData = await KRXCollector.fetchKRXStockData(testDate, 'KOSPI')
+    const krxKosdaqData = await KRXCollector.fetchKRXStockData(testDate, 'KOSDAQ')
     const krxInvestorTradingData = await KRXCollector.fetchInvestorTradingData(testDate)
     const krxOptionData = await KRXCollector.fetchOptionData(testDate)
     
     console.log('KRX 수집 결과:')
     if (krxKospiData) {
-      console.log(`  ✅ KOSPI: ${krxKospiData.index} (${krxKospiData.changePercent}%)`)
+      console.log(`  ✅ KOSPI: ${krxKospiData.stck_prpr} (${krxKospiData.prdy_ctrt}%)`)
     } else {
       console.log('  ❌ KOSPI 데이터 없음')
     }
     
     if (krxInvestorTradingData) {
-      const foreignNet = krxInvestorTradingData.foreignBuying - krxInvestorTradingData.foreignSelling
+      const foreignNet = Number(krxInvestorTradingData.frgn_shnu_tr_pbmn || 0) - Number(krxInvestorTradingData.frgn_seln_tr_pbmn || 0)
       console.log(`  ✅ 외국인 순매수: ${foreignNet.toLocaleString()}원`)
     } else {
       console.log('  ❌ 투자자별 매매동향 데이터 없음')

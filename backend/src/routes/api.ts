@@ -104,9 +104,9 @@ router.get('/market/kospi/latest', async (req, res) => {
       success: true,
       data: {
         date: latest.date.toISOString().split('T')[0],
-        change: parseFloat(latest.change.toString()),
-        changePercent: parseFloat(latest.changePercent.toString()),
-        volume: latest.volume.toString(),
+        change: parseFloat(latest.prdy_vrss.toString()),
+        changePercent: parseFloat(latest.prdy_ctrt.toString()),
+        volume: latest.acml_vol.toString(),
         updatedAt: latest.updatedAt
       }
     }
@@ -294,7 +294,7 @@ router.get('/system/status', async (req, res) => {
           } : null,
           kospiIndex: latestKospi ? {
             date: latestKospi.date.toISOString().split('T')[0],
-            change: parseFloat(latestKospi.change.toString())
+            change: parseFloat(latestKospi.prdy_vrss.toString())
           } : null
         },
         recentCollections: recentLogs.length
