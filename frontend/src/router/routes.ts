@@ -24,6 +24,11 @@ const routes: RouteRecordRaw[] = [
         path: 'about', 
         component: () => import('pages/AboutPage.vue'),
         meta: { title: 'About - Fear & Greed Index' }
+      },
+      { 
+        path: 'batch', 
+        component: () => import('pages/BatchManagementPage.vue'),
+        meta: { title: '배치 처리 관리' }
       }
     ],
   },

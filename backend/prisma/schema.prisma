@@ -448,3 +448,85 @@ model upbitIndexData {
   value  Float
   updatedAt DateTime @updatedAt
 }
+
+// Batch Processing Models
+model BatchJob {
+  id              String      @id @default(uuid())
+  jobType         String      // "HISTORICAL_BACKFILL", "INDEX_RECALCULATION", etc.
+  status          String      @default("PENDING") // "PENDING", "RUNNING", "COMPLETED", "FAILED", "PAUSED"
+  priority        String      @default("NORMAL") // "LOW", "NORMAL", "HIGH"
+  
+  // Job Configuration
+  parameters      Json        // Job-specific parameters
+  processingStrategy String   @default("CHUNKED") // "CHUNKED", "STREAM", "PARALLEL"
+  
+  // Progress Tracking
+  totalItems      Int         @default(0)
+  processedItems  Int         @default(0)
+  failedItems     Int         @default(0)
+  progressPercentage Decimal @default(0.00) @db.Decimal(5,2)
+  
+  // Timing
+  createdAt       DateTime    @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  estimatedDuration Int?      // in seconds
+  
+  // Metadata
+  metadata        Json?
+  createdBy       String?
+  
+  // Relationships
+  logs            BatchJobLog[]
+  result          BatchJobResult?
+  batchHistory    FearGreedBatchHistory[]
+  
+  @@map("batch_jobs")
+}
+
+model BatchJobLog {
+  id        BigInt      @id @default(autoincrement())
+  jobId     String
+  timestamp DateTime    @default(now())
+  logLevel  String      // "INFO", "WARN", "ERROR"
+  message   String      @db.Text
+  context   Json?
+  
+  job       BatchJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  @@index([jobId])
+  @@index([timestamp])
+  @@map("batch_job_logs")
+}
+
+model BatchJobResult {
+  id          String      @id @default(uuid())
+  jobId       String      @unique
+  resultType  String      // "BACKFILL_SUMMARY", "RECALCULATION_REPORT", etc.
+  resultData  Json
+  filePath    String?     @db.VarChar(500)
+  createdAt   DateTime    @default(now())
+  
+  job         BatchJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  @@map("batch_job_results")
+}
+
+// Enhanced Fear Greed Index for batch operations
+model FearGreedBatchHistory {
+  id              BigInt      @id @default(autoincrement())
+  jobId           String?
+  calculationDate DateTime    @db.Date
+  indexValue      Int         // 0-100 range
+  confidenceScore Decimal?    @db.Decimal(5,2)
+  components      Json        // Detailed component breakdown
+  calculationMethod String?   // Track which algorithm version was used
+  createdAt       DateTime    @default(now())
+  
+  job             BatchJob?   @relation(fields: [jobId], references: [id])
+  
+  @@unique([calculationDate, calculationMethod])
+  @@index([calculationDate])
+  @@index([jobId])
+  @@map("fear_greed_batch_history")
+}

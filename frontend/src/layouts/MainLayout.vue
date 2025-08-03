@@ -59,6 +59,22 @@
         <q-separator />
 
         <q-item-label header>
+          Management
+        </q-item-label>
+
+        <q-item clickable v-ripple to="/batch">
+          <q-item-section avatar>
+            <q-icon name="memory" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Batch Processing</q-item-label>
+            <q-item-label caption>배치 처리 관리</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-separator />
+
+        <q-item-label header>
           About
         </q-item-label>
 
