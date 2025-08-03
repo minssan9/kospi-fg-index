@@ -5,9 +5,9 @@ import { TokenService } from './tokenService'
 const prisma = new PrismaClient()
 
 export interface RateLimitConfig {
-  windowMs: number    // Time window in milliseconds
-  maxAttempts: number // Maximum attempts per window
-  blockDurationMs: number // How long to block after exceeding limit
+  windowMs?: number    // Time window in milliseconds
+  maxAttempts?: number // Maximum attempts per window
+  blockDurationMs?: number // How long to block after exceeding limit
 }
 
 export interface RateLimitResult {
@@ -22,9 +22,9 @@ export interface LoginAttemptInfo {
   id: string
   username: string
   ipAddress: string
-  userAgent?: string
+  userAgent: string | null
   success: boolean
-  failReason?: string
+  failReason?: string | null
   attemptedAt: Date
   riskScore: number
 }
@@ -35,7 +35,7 @@ export interface LoginAttemptInfo {
  */
 export class RateLimitService {
   // Default rate limit configurations
-  private static readonly DEFAULT_CONFIGS: Record<string, RateLimitConfig> = {
+  private static readonly DEFAULT_CONFIGS: Record<string, Required<RateLimitConfig>> = {
     LOGIN: {
       windowMs: 15 * 60 * 1000,  // 15 minutes
       maxAttempts: 5,             // 5 attempts per 15 minutes
@@ -67,10 +67,12 @@ export class RateLimitService {
     customConfig?: Partial<RateLimitConfig>
   ): Promise<RateLimitResult> {
     try {
-      const config = { ...this.DEFAULT_CONFIGS[action], ...customConfig }
-      if (!config) {
+      const defaultConfig = this.DEFAULT_CONFIGS[action]
+      if (!defaultConfig) {
         throw new Error(`Unknown action: ${action}`)
       }
+
+      const config = { ...defaultConfig, ...customConfig }
 
       const now = new Date()
       const windowStart = new Date(now.getTime() - config.windowMs)
@@ -216,7 +218,7 @@ export class RateLimitService {
           ipAddress,
           userAgent,
           success,
-          failReason,
+          failReason: failReason || null,
           attemptedAt: new Date()
         }
       })
@@ -414,7 +416,7 @@ export class RateLimitService {
     try {
       const lockUntil = durationHours 
         ? new Date(Date.now() + durationHours * 60 * 60 * 1000)
-        : undefined
+        : null
 
       await prisma.adminUser.update({
         where: { id: userId },
@@ -502,11 +504,19 @@ export class RateLimitService {
         return { locked: false }
       }
 
-      return {
-        locked: true,
-        reason: user.lockReason || undefined,
-        lockedUntil: user.lockedUntil || undefined
+      const result: { locked: boolean; reason?: string; lockedUntil?: Date } = {
+        locked: true
       }
+
+      if (user.lockReason) {
+        result.reason = user.lockReason
+      }
+
+      if (user.lockedUntil) {
+        result.lockedUntil = user.lockedUntil
+      }
+
+      return result
     } catch (error) {
       console.error('[RateLimitService] Check user locked error:', error)
       return { locked: false }

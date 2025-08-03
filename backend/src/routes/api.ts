@@ -3,7 +3,7 @@ import { DatabaseService } from '../services/databaseService'
 import { FearGreedCalculator } from '../services/fearGreedCalculator'
 import { KRXCollector } from '../collectors/krxCollector'
 import { BOKCollector } from '../collectors/bokCollector'
-import { formatDate } from '../utils/dateUtils'
+import { formatDate } from '@/utils/dateUtils'
 import { requireAdmin, requirePermission, AuthenticatedRequest } from '../middleware/adminAuth'
 
 const router = express.Router()

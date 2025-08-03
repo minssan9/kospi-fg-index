@@ -7,7 +7,7 @@ import SessionService from '../services/sessionService'
 import RateLimitService from '../services/rateLimitService'
 import PasswordPolicyService from '../services/passwordPolicyService'
 import MfaService from '../services/mfaService'
-import AuditService from '../services/auditService'
+import AuditService from '@/services/auditService'
 
 const prisma = new PrismaClient()
 

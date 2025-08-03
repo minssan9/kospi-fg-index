@@ -57,7 +57,7 @@ export class MfaService {
         where: { id: userId },
         data: {
           mfaSecret: secret,
-          mfaBackupCodes: encryptedBackupCodes,
+          mfaBackupCodes: JSON.stringify(encryptedBackupCodes),
           mfaEnabled: false // User must verify setup first
         }
       })
@@ -149,11 +149,14 @@ export class MfaService {
       // If TOTP fails, try backup codes
       const backupResult = await this.verifyBackupCode(userId, token)
       if (backupResult.valid) {
-        return {
+        const result: MfaVerificationResult = {
           valid: true,
-          backupCodeUsed: true,
-          remainingBackupCodes: backupResult.remainingCodes
+          backupCodeUsed: true
         }
+        if (backupResult.remainingCodes !== undefined) {
+          result.remainingBackupCodes = backupResult.remainingCodes
+        }
+        return result
       }
 
       return { valid: false, error: 'Invalid MFA token' }
@@ -173,7 +176,7 @@ export class MfaService {
         data: {
           mfaEnabled: false,
           mfaSecret: null,
-          mfaBackupCodes: []
+          mfaBackupCodes: JSON.stringify([])
         }
       })
 
@@ -214,11 +217,24 @@ export class MfaService {
         return { enabled: false, backupCodesCount: 0 }
       }
 
-      return {
-        enabled: user.mfaEnabled,
-        secret: user.mfaSecret || undefined,
-        backupCodesCount: user.mfaBackupCodes.length
+      let backupCodesCount = 0
+      try {
+        const backupCodes = JSON.parse(user.mfaBackupCodes || '[]')
+        backupCodesCount = Array.isArray(backupCodes) ? backupCodes.length : 0
+      } catch {
+        backupCodesCount = 0
       }
+
+      const result: MfaStatus = {
+        enabled: user.mfaEnabled,
+        backupCodesCount
+      }
+
+      if (user.mfaSecret) {
+        result.secret = user.mfaSecret
+      }
+
+      return result
     } catch (error) {
       console.error('[MfaService] Get MFA status error:', error)
       return { enabled: false, backupCodesCount: 0 }
@@ -235,7 +251,7 @@ export class MfaService {
 
       await prisma.adminUser.update({
         where: { id: userId },
-        data: { mfaBackupCodes: encryptedBackupCodes }
+        data: { mfaBackupCodes: JSON.stringify(encryptedBackupCodes) }
       })
 
       // Log backup code regeneration
@@ -329,11 +345,11 @@ export class MfaService {
       const digest = hmac.digest()
 
       // Dynamic truncation
-      const offset = digest[digest.length - 1] & 0xf
-      const code = ((digest[offset] & 0x7f) << 24) |
-                   ((digest[offset + 1] & 0xff) << 16) |
-                   ((digest[offset + 2] & 0xff) << 8) |
-                   (digest[offset + 3] & 0xff)
+      const offset = digest[digest.length - 1]! & 0xf
+      const code = ((digest[offset]! & 0x7f) << 24) |
+                   ((digest[offset + 1]! & 0xff) << 16) |
+                   ((digest[offset + 2]! & 0xff) << 8) |
+                   (digest[offset + 3]! & 0xff)
 
       // Return 6-digit code
       return (code % 1000000).toString().padStart(6, '0')
@@ -402,14 +418,16 @@ export class MfaService {
         select: { mfaBackupCodes: true }
       })
 
-      if (!user || !user.mfaBackupCodes.length) {
+      if (!user || !user.mfaBackupCodes) {
         return { valid: false }
       }
 
+      const encryptedBackupCodes = JSON.parse(user.mfaBackupCodes)
+
       // Check if any backup code matches
       let foundIndex = -1
-      for (let i = 0; i < user.mfaBackupCodes.length; i++) {
-        const decryptedCode = this.decryptBackupCode(user.mfaBackupCodes[i])
+      for (let i = 0; i < encryptedBackupCodes.length; i++) {
+        const decryptedCode = this.decryptBackupCode(encryptedBackupCodes[i])
         if (decryptedCode === code) {
           foundIndex = i
           break
@@ -421,12 +439,12 @@ export class MfaService {
       }
 
       // Remove the used backup code
-      const updatedBackupCodes = [...user.mfaBackupCodes]
+      const updatedBackupCodes = [...encryptedBackupCodes]
       updatedBackupCodes.splice(foundIndex, 1)
 
       await prisma.adminUser.update({
         where: { id: userId },
-        data: { mfaBackupCodes: updatedBackupCodes }
+        data: { mfaBackupCodes: JSON.stringify(updatedBackupCodes) }
       })
 
       // Log backup code usage
@@ -461,7 +479,7 @@ export class MfaService {
     let value = 0
 
     for (let i = 0; i < buffer.length; i++) {
-      value = (value << 8) | buffer[i]
+      value = (value << 8) | buffer[i]!
       bits += 8
 
       while (bits >= 5) {
@@ -487,7 +505,7 @@ export class MfaService {
     let value = 0
 
     for (let i = 0; i < encoded.length; i++) {
-      const char = encoded[i].toUpperCase()
+      const char = encoded[i]!.toUpperCase()
       const index = alphabet.indexOf(char)
       
       if (index === -1) continue

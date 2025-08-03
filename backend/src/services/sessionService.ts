@@ -9,7 +9,7 @@ export interface SessionInfo {
   sessionId: string
   userId: string
   ipAddress: string
-  userAgent?: string
+  userAgent?: string | undefined
   isActive: boolean
   lastUsedAt: Date
   createdAt: Date
@@ -18,12 +18,12 @@ export interface SessionInfo {
     country?: string
     city?: string
     timezone?: string
-  }
+  } | undefined
   device?: {
     type?: string // desktop, mobile, tablet
     os?: string
     browser?: string
-  }
+  } | undefined
 }
 
 export interface SessionStats {
@@ -65,7 +65,7 @@ export class SessionService {
         sessionId: session.sessionId,
         userId: session.userId,
         ipAddress: session.ipAddress,
-        userAgent: session.userAgent || undefined,
+        userAgent: session.userAgent ?? undefined,
         isActive: session.isActive,
         lastUsedAt: session.lastUsedAt,
         createdAt: session.createdAt,
@@ -105,7 +105,7 @@ export class SessionService {
           sessionId: session.sessionId,
           userId: session.userId,
           ipAddress: session.ipAddress,
-          userAgent: session.userAgent || undefined,
+          userAgent: session.userAgent ?? undefined,
           isActive: session.isActive,
           lastUsedAt: session.lastUsedAt,
           createdAt: session.createdAt,
@@ -305,7 +305,7 @@ export class SessionService {
   /**
    * Parse user agent string to extract device information
    */
-  private static parseUserAgent(userAgent?: string): SessionInfo['device'] {
+  private static parseUserAgent(userAgent?: string | null): SessionInfo['device'] {
     if (!userAgent) return undefined
 
     const device: SessionInfo['device'] = {}

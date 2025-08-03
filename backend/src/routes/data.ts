@@ -17,7 +17,7 @@ router.get('/kospi', async (req: Request, res: Response) => {
         change: parseFloat(kospi.prdy_vrss.toString()),
         changePercent: parseFloat(kospi.prdy_ctrt.toString()),
         volume: Number(kospi.acml_vol),
-        marketCap: kospi.hts_avls ? Number(kospi.hts_avls) : null // 시가총액 (상장주수 * 현재가)
+        marketCap: Number(kospi.acml_tr_pbmn)
       },
       timestamp: new Date().toISOString()
     });
@@ -40,7 +40,7 @@ router.get('/kosdaq', async (req: Request, res: Response) => {
         change: parseFloat(kosdaq.prdy_vrss.toString()),
         changePercent: parseFloat(kosdaq.prdy_ctrt.toString()),
         volume: Number(kosdaq.acml_vol),
-        marketCap: kosdaq.hts_avls ? Number(kosdaq.hts_avls) : null // 시가총액 (상장주수 * 현재가)
+        marketCap: Number(kosdaq.acml_tr_pbmn)
       },
       timestamp: new Date().toISOString()
     });
@@ -67,14 +67,14 @@ router.get('/market', async (req: Request, res: Response) => {
           change: parseFloat(kospi.prdy_vrss.toString()),
           changePercent: parseFloat(kospi.prdy_ctrt.toString()),
           volume: Number(kospi.acml_vol),
-          marketCap: kospi.hts_avls ? Number(kospi.hts_avls) : null
+          marketCap: Number(kospi.acml_tr_pbmn)
         } : null,
         kosdaq: kosdaq ? {
           current: parseFloat(kosdaq.stck_prpr.toString()),
           change: parseFloat(kosdaq.prdy_vrss.toString()),
           changePercent: parseFloat(kosdaq.prdy_ctrt.toString()),
           volume: Number(kosdaq.acml_vol),
-          marketCap: kosdaq.hts_avls ? Number(kosdaq.hts_avls) : null
+          marketCap: Number(kosdaq.acml_tr_pbmn)
         } : null
       },
       timestamp: new Date().toISOString()

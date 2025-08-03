@@ -120,7 +120,8 @@ export class PasswordPolicyService {
    * Get password policy by complexity level
    */
   static getPolicy(complexity: string = 'MEDIUM'): PasswordPolicy {
-    return this.POLICIES[complexity] || this.POLICIES.MEDIUM
+    const policy = this.POLICIES[complexity]
+    return policy || this.POLICIES.MEDIUM!
   }
 
   /**
@@ -158,10 +159,10 @@ export class PasswordPolicyService {
         return { ...this.POLICIES.MEDIUM, ...customPolicy }
       }
 
-      return this.POLICIES.MEDIUM
+      return this.POLICIES.MEDIUM!
     } catch (error) {
       console.error('[PasswordPolicyService] Get current policy error:', error)
-      return this.POLICIES.MEDIUM
+      return this.POLICIES.MEDIUM!
     }
   }
 
