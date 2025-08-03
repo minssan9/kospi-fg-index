@@ -7,6 +7,7 @@
     "start": "dotenv -e .env -- node dist/server.js",
     "start:prod": "dotenv -e .env.production -- node dist/server.js",
     "start:scheduler": "dotenv -e .env.production -- node -r ts-node/register -e \"require('./src/services/scheduler').startDataCollectionScheduler()\"",
+    "start:batch-worker": "dotenv -e .env.production -- node -r ts-node/register -e \"require('./src/services/batchWorker').startBatchWorker()\"",
     "dev": "dotenv -e .env -- nodemon src/server.ts",
     "build": "tsc",
     "build:prod": "dotenv -e .env.production -- tsc",
@@ -79,6 +80,7 @@
     "rimraf": "^5.0.5",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
   },
   "engines": {

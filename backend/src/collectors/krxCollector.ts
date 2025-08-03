@@ -301,6 +301,59 @@ export class KRXCollector {
   }
 
   /**
+   * 일일 데이터 수집 (모든 KRX 데이터 수집)
+   */
+  static async collectDailyData(date: string): Promise<{
+    kospi: krxStockData | null
+    trading: InvestorTradingData | null
+    options: OptionData | null
+  }> {
+    console.log(`[KRX] 일일 데이터 수집 시작: ${date}`)
+    
+    const results = {
+      kospi: null as krxStockData | null,
+      trading: null as InvestorTradingData | null,
+      options: null as OptionData | null
+    }
+
+    try {
+      // KOSPI 데이터 수집
+      try {
+        console.log(`[KRX] KOSPI 데이터 수집 중...`)
+        results.kospi = await this.fetchKRXStockData(date, 'KOSPI')
+        console.log(`[KRX] KOSPI 데이터 수집 완료`)
+      } catch (error) {
+        console.error(`[KRX] KOSPI 데이터 수집 실패:`, error)
+      }
+
+      // 투자자별 매매동향 데이터 수집
+      try {
+        console.log(`[KRX] 투자자별 매매동향 데이터 수집 중...`)
+        results.trading = await this.fetchInvestorTradingData(date, 'KOSPI')
+        console.log(`[KRX] 투자자별 매매동향 데이터 수집 완료`)
+      } catch (error) {
+        console.error(`[KRX] 투자자별 매매동향 데이터 수집 실패:`, error)
+      }
+
+      // 옵션 데이터 수집 (현재 지원되지 않음)
+      try {
+        console.log(`[KRX] 옵션 데이터 수집 중...`)
+        results.options = await this.fetchOptionData(date)
+        console.log(`[KRX] 옵션 데이터 수집 완료`)
+      } catch (error) {
+        console.error(`[KRX] 옵션 데이터 수집 실패 (예상됨):`, (error as any).message)
+      }
+
+      console.log(`[KRX] 일일 데이터 수집 완료: ${date}`)
+      return results
+
+    } catch (error) {
+      console.error(`[KRX] 일일 데이터 수집 중 오류 발생:`, error)
+      throw error
+    }
+  }
+
+  /**
    * 최근 영업일 확인 (주말, 공휴일 제외)
    */
   static getLastBusinessDay(): string {

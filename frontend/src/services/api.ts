@@ -213,4 +213,276 @@ export const systemApi = {
   }
 }
 
+// Batch Processing Types
+export interface BatchJob {
+  jobId: string
+  type: string
+  status: string
+  priority: string
+  progressPercentage: number
+  createdAt: string
+  startedAt?: string
+  completedAt?: string
+  createdBy?: string
+}
+
+export interface BatchJobStatus {
+  jobId: string
+  type: string
+  status: string
+  priority: string
+  progress: {
+    totalItems: number
+    processedItems: number
+    failedItems: number
+    progressPercentage: number
+    itemsPerSecond?: number
+    estimatedTimeRemaining?: number
+  }
+  execution: {
+    startedAt?: string
+    completedAt?: string
+    duration?: number
+    estimatedTimeRemaining?: number
+  }
+  result?: any
+  errors?: any[]
+}
+
+export interface CreateBatchJobRequest {
+  type: string
+  parameters: {
+    dateRange?: {
+      startDate: string
+      endDate: string
+    }
+    targetMarkets?: string[]
+    processingStrategy?: string
+    chunkSize?: number
+    priority?: string
+    overwriteExisting?: boolean
+    validationLevel?: string
+    components?: string[]
+    newWeights?: {
+      priceMomentum: number
+      investorSentiment: number
+      putCallRatio: number
+      volatility: number
+      safeHaven: number
+    }
+  }
+  metadata?: {
+    description?: string
+    tags?: string[]
+    requestedBy?: string
+  }
+}
+
+export interface BatchMetrics {
+  system: {
+    activeJobs: number
+    queuedJobs: number
+    completedToday: number
+    failedToday: number
+    avgProcessingTime: number
+  }
+  performance: {
+    itemsPerSecond: number
+    memoryUsage: string
+    cpuUsage: number
+  }
+  health: {
+    status: string
+    lastSuccessfulJob?: string
+    errorRate: number
+  }
+}
+
+// Batch Processing API
+export const batchApi = {
+  // List batch jobs
+  async listBatchJobs(page: number = 1, limit: number = 20, status?: string, type?: string): Promise<{
+    jobs: BatchJob[]
+    pagination: {
+      total: number
+      page: number
+      limit: number
+      hasNext: boolean
+      hasPrev: boolean
+    }
+  }> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      })
+      if (status) params.append('status', status)
+      if (type) params.append('type', type)
+
+      const response = await api.get(`/batch/jobs?${params}`)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to list batch jobs:', error)
+      throw error
+    }
+  },
+
+  // Create batch job
+  async createBatchJob(request: CreateBatchJobRequest): Promise<{
+    jobId: string
+    status: string
+    estimatedDuration?: number
+    createdAt: string
+    queuePosition?: number
+  }> {
+    try {
+      const response = await api.post('/batch/jobs', request)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to create batch job:', error)
+      throw error
+    }
+  },
+
+  // Get batch job status
+  async getBatchJobStatus(jobId: string): Promise<BatchJobStatus> {
+    try {
+      const response = await api.get(`/batch/jobs/${jobId}`)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to get batch job status:', error)
+      throw error
+    }
+  },
+
+  // Start batch job
+  async startBatchJob(jobId: string): Promise<any> {
+    try {
+      const response = await api.post(`/batch/jobs/${jobId}/start`)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to start batch job:', error)
+      throw error
+    }
+  },
+
+  // Pause batch job
+  async pauseBatchJob(jobId: string): Promise<any> {
+    try {
+      const response = await api.post(`/batch/jobs/${jobId}/pause`)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to pause batch job:', error)
+      throw error
+    }
+  },
+
+  // Cancel batch job
+  async cancelBatchJob(jobId: string): Promise<any> {
+    try {
+      const response = await api.post(`/batch/jobs/${jobId}/cancel`)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to cancel batch job:', error)
+      throw error
+    }
+  },
+
+  // Create historical backfill job
+  async createHistoricalBackfill(request: {
+    dateRange: {
+      startDate: string
+      endDate: string
+    }
+    components?: string[]
+    overwriteExisting: boolean
+    validationLevel: string
+  }): Promise<any> {
+    try {
+      const response = await api.post('/batch/historical-backfill', request)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to create historical backfill:', error)
+      throw error
+    }
+  },
+
+  // Create index recalculation job
+  async createIndexRecalculation(request: {
+    dateRange: {
+      startDate: string
+      endDate: string
+    }
+    recalculationReason: string
+    newWeights?: {
+      priceMomentum: number
+      investorSentiment: number
+      putCallRatio: number
+      volatility: number
+      safeHaven: number
+    }
+  }): Promise<any> {
+    try {
+      const response = await api.post('/batch/recalculate-index', request)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to create index recalculation:', error)
+      throw error
+    }
+  },
+
+  // Get batch metrics
+  async getBatchMetrics(): Promise<BatchMetrics> {
+    try {
+      const response = await api.get('/batch/metrics')
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to get batch metrics:', error)
+      return {
+        system: {
+          activeJobs: 0,
+          queuedJobs: 0,
+          completedToday: 0,
+          failedToday: 0,
+          avgProcessingTime: 0
+        },
+        performance: {
+          itemsPerSecond: 0,
+          memoryUsage: '0MB',
+          cpuUsage: 0
+        },
+        health: {
+          status: 'UNKNOWN',
+          errorRate: 0
+        }
+      }
+    }
+  },
+
+  // Get job logs
+  async getJobLogs(jobId: string, page: number = 1, limit: number = 50): Promise<{
+    logs: Array<{
+      timestamp: string
+      level: string
+      message: string
+      context?: any
+    }>
+    pagination: {
+      total: number
+      page: number
+      limit: number
+      hasNext: boolean
+      hasPrev: boolean
+    }
+  }> {
+    try {
+      const response = await api.get(`/batch/jobs/${jobId}/logs?page=${page}&limit=${limit}`)
+      return response.data.data
+    } catch (error) {
+      console.error('Failed to get job logs:', error)
+      throw error
+    }
+  }
+}
+
 export default api 

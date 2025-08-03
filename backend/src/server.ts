@@ -13,6 +13,7 @@ dotenv.config();
 import apiRoutes from './routes/api';
 import fearGreedRoutes from './routes/fearGreed';
 import dataRoutes from './routes/data';
+import batchRoutes from './routes/batch';
 
 // 미들웨어 import
 import { errorHandler } from './middleware/errorHandler';
@@ -22,6 +23,7 @@ import { requestLogger } from './middleware/logger';
 // 유틸리티 import
 import { logger } from './utils/logger';
 import { startDataCollectionScheduler } from './services/scheduler';
+import { startBatchWorker } from './services/batchWorker';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,6 +76,7 @@ app.get('/health', (req, res) => {
 app.use('/api', apiRoutes);
 app.use('/api/fear-greed', fearGreedRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/batch', batchRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {
@@ -84,6 +87,7 @@ app.get('/', (req, res) => {
     endpoints: {
       fearGreedIndex: '/api/fear-greed',
       marketData: '/api/data',
+      batchProcessing: '/api/batch',
       health: '/health'
     }
   });
@@ -113,6 +117,12 @@ server.listen(PORT, () => {
   if (process.env.NODE_ENV === 'production') {
     startDataCollectionScheduler();
     console.log('📅 데이터 수집 스케줄러가 시작되었습니다.');
+  }
+
+  // 배치 워커 시작
+  if (process.env.BATCH_WORKER_ENABLED === 'true') {
+    startBatchWorker();
+    console.log('⚙️ 배치 워커가 시작되었습니다.');
   }
 });
 
