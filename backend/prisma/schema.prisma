@@ -1042,3 +1042,178 @@ enum InsightStatus {
   RESOLVED
   DISMISSED
 }
+
+// ==================== DART DISCLOSURE MODELS ====================
+
+// DART 공시정보 데이터
+model DartDisclosure {
+  id              Int      @id @default(autoincrement())
+  receiptNumber   String   @unique // 접수번호 (고유키)
+  corpCode        String   // 기업 고유번호
+  corpName        String   // 기업명
+  stockCode       String?  // 주식코드
+  reportName      String   @db.Text // 보고서명
+  flrName         String   // 공시제출인명
+  receiptDate     DateTime @db.Date // 접수일자
+  disclosureDate  DateTime @db.Date // 공시일자
+  reportCode      String   // 보고서 코드 (A=정기공시, B=주요사항보고 등)
+  remarks         String?  @db.Text // 비고
+  
+  // Fear & Greed 지수 관련 필드
+  sentimentImpact String?  // positive, negative, neutral
+  impactScore     Int?     // 영향 점수 (0-100)
+  keywords        String?  @db.Text // JSON 키워드 배열
+  category        String?  // dividend, merger, acquisition, financial, management, other
+  
+  // 메타데이터
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([corpCode])
+  @@index([receiptDate])
+  @@index([reportCode])
+  @@index([sentimentImpact])
+  @@map("dart_disclosures")
+}
+
+// DART 기업정보
+model DartCompany {
+  id              Int      @id @default(autoincrement())
+  corpCode        String   @unique // 기업 고유번호
+  corpName        String   // 기업명
+  corpNameEng     String?  // 기업명(영문)
+  stockName       String?  // 종목명
+  stockCode       String?  // 주식코드
+  ceoName         String?  // 대표자명
+  corpCls         String?  // 기업구분 (Y=유가, K=코스닥, N=코넥스, E=기타)
+  jurirNo         String?  // 법인번호
+  bizrNo          String?  // 사업자번호
+  adres           String?  @db.Text // 주소
+  homUrl          String?  // 홈페이지
+  irUrl           String?  // IR홈페이지
+  phnNo           String?  // 전화번호
+  faxNo           String?  // 팩스번호
+  indutyCode      String?  // 업종코드
+  estDate         String?  // 설립일자
+  accMt           String?  // 결산월
+  
+  // KOSPI 200 포함 여부
+  isKospi200      Boolean  @default(false)
+  kospi200Rank    Int?     // KOSPI 200 내 순위
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([stockCode])
+  @@index([corpCls])
+  @@index([isKospi200])
+  @@map("dart_companies")
+}
+
+// DART 재무정보
+model DartFinancial {
+  id                  Int      @id @default(autoincrement())
+  corpCode            String   // 기업 고유번호
+  businessYear        String   // 사업연도
+  reportCode          String   // 보고서 코드
+  reprtNm             String?  // 보고서명
+  acntNm              String   // 계정명
+  thstrmNm            String?  // 당기명
+  thstrmAmount        String?  // 당기금액
+  frmtrmNm            String?  // 전기명
+  frmtrmAmount        String?  // 전기금액
+  bfefrmtrmNm         String?  // 전전기명
+  bfefrmtrmAmount     String?  // 전전기금액
+  ord                 String?  // 계정순서
+  currency            String?  // 통화단위
+  fsCls               String?  // 재무제표구분
+  sjNm                String?  // 재무제표명
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@unique([corpCode, businessYear, reportCode, acntNm])
+  @@index([corpCode])
+  @@index([businessYear])
+  @@map("dart_financials")
+}
+
+// DART 배치 작업 로그
+model DartBatchLog {
+  id              String   @id @default(cuid())
+  jobId           String   @unique // 작업 ID
+  jobType         String   // disclosure, financial, company_info
+  status          String   // pending, processing, completed, failed
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  processedCount  Int      @default(0)
+  successCount    Int      @default(0)
+  failedCount     Int      @default(0)
+  errors          String?  @db.Text // JSON 오류 목록
+  
+  // 작업 상세 정보
+  parameters      String?  @db.Text // JSON 파라미터
+  resultSummary   String?  @db.Text // JSON 결과 요약
+  
+  @@index([jobType])
+  @@index([status])
+  @@index([startTime])
+  @@map("dart_batch_logs")
+}
+
+// DART 수집 통계
+model DartCollectionStat {
+  id                  Int      @id @default(autoincrement())
+  date                DateTime @unique @db.Date
+  totalApiCalls       Int      @default(0)
+  successfulCalls     Int      @default(0)
+  failedCalls         Int      @default(0)
+  dataPoints          Int      @default(0)
+  averageResponseTime Int      @default(0) // ms
+  rateLimitRemaining  Int      @default(10000)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@map("dart_collection_stats")
+}
+
+// DART 대량보유 현황
+model DartStockHolding {
+  id              Int      @id @default(autoincrement())
+  corpCode        String   // 기업 고유번호
+  corpName        String   // 기업명
+  stockCode       String?  // 주식코드
+  reportDate      DateTime @db.Date // 보고일자
+  reporterName    String   // 보고자명
+  holdingRatio    Decimal  @db.Decimal(5, 2) // 보유비율 (%)
+  holdingShares   BigInt   // 보유주식수
+  changeRatio     Decimal  @db.Decimal(5, 2) // 변동비율 (%)
+  changeShares    BigInt   // 변동주식수
+  changeReason    String   // 변동사유
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([corpCode, reportDate, reporterName])
+  @@index([corpCode])
+  @@index([reportDate])
+  @@map("dart_stock_holdings")
+}
+
+// DART 알림 설정
+model DartAlert {
+  id              String   @id @default(cuid())
+  name            String   // 알림 설정명
+  corpCodes       String   @db.Text // JSON 배열 - 모니터링 기업 코드들
+  keywords        String   @db.Text // JSON 배열 - 알림 키워드들
+  reportTypes     String   @db.Text // JSON 배열 - 알림 대상 보고서 유형들
+  minImpactScore  Int      @default(0) // 최소 영향 점수
+  channels        String   @db.Text // JSON 배열 - 알림 채널들
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([isActive])
+  @@map("dart_alerts")
+}

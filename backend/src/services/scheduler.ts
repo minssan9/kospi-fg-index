@@ -1,8 +1,10 @@
 import cron from 'node-cron'
 import { KRXCollector } from '../collectors/krxCollector'
 import { BOKCollector } from '../collectors/bokCollector'
+import { DARTCollector } from '../collectors/dartCollector'
 import { FearGreedCalculator } from './fearGreedCalculator'
 import { DatabaseService } from './databaseService'
+import { DartBatchService } from './dartBatchService'
 import { fetchUpbitIndexData } from '../collectors/upbitCollector'
 import { fetchCnnFearGreedIndexData } from '../collectors/cnnCollector'
 import { fetchKoreaFGIndexData } from '../collectors/koreaFGCollector'
@@ -83,8 +85,38 @@ export function startDataCollectionScheduler(): void {
       timezone: 'Asia/Seoul'
     })
 
+    // 6. 평일 오후 6:30 - DART 공시 데이터 일일 배치 수집
+    const dartBatchJob = cron.schedule('30 18 * * 1-5', async () => {
+      console.log('[Scheduler] DART 공시 데이터 배치 수집 시작')
+      const yesterday = DARTCollector.getLastBusinessDay(1)
+      try {
+        await DartBatchService.scheduleDailyDisclosureCollection(yesterday)
+        console.log(`[Scheduler] DART 배치 작업 예약 완료: ${yesterday}`)
+      } catch (error) {
+        console.error('[Scheduler] DART 배치 작업 실패:', error)
+      }
+    }, {
+      scheduled: false,
+      timezone: 'Asia/Seoul'
+    })
+
+    // 7. 매주 일요일 오전 2:00 - DART KOSPI 200 재무 데이터 수집
+    const dartFinancialJob = cron.schedule('0 2 * * 0', async () => {
+      console.log('[Scheduler] DART 재무 데이터 배치 수집 시작')
+      const currentYear = new Date().getFullYear().toString()
+      try {
+        await DartBatchService.scheduleFinancialDataCollection(currentYear)
+        console.log(`[Scheduler] DART 재무 데이터 배치 작업 예약 완료: ${currentYear}`)
+      } catch (error) {
+        console.error('[Scheduler] DART 재무 데이터 배치 작업 실패:', error)
+      }
+    }, {
+      scheduled: false,
+      timezone: 'Asia/Seoul'
+    })
+
     // 스케줄러 작업 배열에 추가
-    scheduledJobs = [bokJob, krxJob, fearGreedJob, maintenanceJob, externalIndexJob]
+    scheduledJobs = [bokJob, krxJob, fearGreedJob, maintenanceJob, externalIndexJob, dartBatchJob, dartFinancialJob]
 
     // 모든 작업 시작
     scheduledJobs.forEach(job => job.start())
@@ -95,8 +127,10 @@ export function startDataCollectionScheduler(): void {
     console.log('  - BOK 데이터: 평일 06:00')
     console.log('  - KRX 데이터: 평일 15:45') 
     console.log('  - Fear & Greed 계산: 평일 18:00')
+    console.log('  - DART 공시 배치: 평일 18:30')
     console.log('  - 시스템 유지보수: 매일 00:00')
     console.log('  - 외부 지수: 매일 00:10')
+    console.log('  - DART 재무 배치: 매주 일요일 02:00')
 
   } catch (error) {
     console.error('스케줄러 시작 중 오류:', error)

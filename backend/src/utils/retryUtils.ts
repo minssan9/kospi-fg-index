@@ -81,6 +81,17 @@ export class CircuitBreaker {
   }
 }
 
+/**
+ * Simple retry with exponential backoff
+ */
+export async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxAttempts: number = 3
+): Promise<T> {
+  const retryManager = RetryManager.getInstance()
+  return retryManager.executeWithRetry(operation, { maxAttempts })
+}
+
 export class RetryManager {
   private static instance: RetryManager
   private circuitBreakers = new Map<string, CircuitBreaker>()

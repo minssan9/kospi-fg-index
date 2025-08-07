@@ -63,6 +63,47 @@
             "cwd": "${workspaceFolder}/backend",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Test Collector",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "test:dart"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Daily Data",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart-daily"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Financial Data",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart-financial"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Debug Collector (Direct)",
+            "program": "${workspaceFolder}/backend/src/test/dartCollectorTest.ts",
+            "runtimeArgs": ["-r", "ts-node/register", "-r", "tsconfig-paths/register"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "envFile": "${workspaceFolder}/backend/.env"
         }
     ]
 }
