@@ -1,0 +1,255 @@
+{
+  "masterContext": {
+    "name": "DART Batch Processing System - Production Integration",
+    "description": "Deploy and integrate completed DART system into production environment",
+    "version": "1.0.0",
+    "createdAt": "2025-01-11T00:00:00.000Z",
+    "tags": {
+      "master": {
+        "description": "Main production integration tasks",
+        "createdAt": "2025-01-11T00:00:00.000Z",
+        "metadata": {}
+      }
+    }
+  },
+  "currentTag": "master",
+  "tags": {
+    "master": {
+      "tasks": [
+        {
+          "id": "1",
+          "title": "Production Environment Setup",
+          "description": "Configure production environment for DART batch processing system",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [],
+          "details": "Set up production environment configuration including API credentials, database settings, and service configuration for DART batch processing system.",
+          "testStrategy": "Verify environment variables, test database connectivity, validate API access",
+          "subtasks": []
+        },
+        {
+          "id": "2",
+          "title": "Database Schema Migration",
+          "description": "Deploy DART database schema to production",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [
+            "1"
+          ],
+          "details": "Apply database migrations for 7 new DART models (DartDisclosure, DartCompany, DartFinancial, etc.) with proper indexing and constraints.",
+          "testStrategy": "Validate schema deployment, test data insertion, verify foreign key constraints",
+          "subtasks": []
+        },
+        {
+          "id": "3",
+          "title": "DART API Integration Configuration",
+          "description": "Configure production DART API access and authentication",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [
+            "1"
+          ],
+          "details": "Register production DART API credentials, configure rate limiting (10K calls/day), implement authentication flow and error handling.",
+          "testStrategy": "Test API connectivity, verify rate limiting, validate error responses",
+          "subtasks": []
+        },
+        {
+          "id": "4",
+          "title": "Batch Service Deployment",
+          "description": "Deploy DART batch processing service to production",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [
+            "2",
+            "3"
+          ],
+          "details": "Deploy dartBatchService with queue management, parallel processing, and retry logic. Configure memory allocation (512MB+) and resource limits.",
+          "testStrategy": "Test batch processing, verify queue operations, validate error recovery",
+          "subtasks": []
+        },
+        {
+          "id": "5",
+          "title": "Scheduler Configuration",
+          "description": "Set up automated scheduling for DART data collection",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [
+            "4"
+          ],
+          "details": "Configure automated scheduler for daily disclosures (weekdays 6:30 PM) and weekly financial data (Sunday 2:00 AM). Implement business day logic and holiday handling.",
+          "testStrategy": "Test schedule execution, verify business day logic, validate error recovery",
+          "subtasks": []
+        },
+        {
+          "id": "6",
+          "title": "REST API Deployment",
+          "description": "Deploy DART REST API endpoints to production",
+          "status": "pending",
+          "priority": "medium",
+          "dependencies": [
+            "4"
+          ],
+          "details": "Deploy /api/dart/* endpoints with rate limiting, validation, and admin controls. Configure security policies and access controls.",
+          "testStrategy": "Test API endpoints, verify rate limiting, validate security controls",
+          "subtasks": []
+        },
+        {
+          "id": "7",
+          "title": "Monitoring & Alerting Setup",
+          "description": "Configure comprehensive monitoring for DART batch system",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [
+            "5"
+          ],
+          "details": "Set up application performance monitoring, error tracking, batch job status monitoring, and alerting systems. Configure operational dashboards.",
+          "testStrategy": "Test monitoring alerts, verify dashboard functionality, validate error tracking",
+          "subtasks": []
+        },
+        {
+          "id": "8",
+          "title": "Historical Data Backfill",
+          "description": "Backfill historical DART disclosure data",
+          "status": "pending",
+          "priority": "medium",
+          "dependencies": [
+            "7"
+          ],
+          "details": "Implement and execute historical data collection for recent disclosure records. Configure data validation and quality checks.",
+          "testStrategy": "Verify data completeness, validate data quality, test batch processing performance",
+          "subtasks": []
+        },
+        {
+          "id": "9",
+          "title": "Fear & Greed Index Integration",
+          "description": "Integrate DART sentiment analysis into Fear & Greed calculation",
+          "status": "pending",
+          "priority": "medium",
+          "dependencies": [
+            "8"
+          ],
+          "details": "Implement disclosure sentiment scoring (0-100), integrate into Fear & Greed algorithm with proper weighting, configure trend detection.",
+          "testStrategy": "Test sentiment calculation, verify Fear & Greed integration, validate trend detection",
+          "subtasks": []
+        },
+        {
+          "id": "10",
+          "title": "Performance Optimization",
+          "description": "Optimize DART batch system performance for production",
+          "status": "pending",
+          "priority": "medium",
+          "dependencies": [
+            "9"
+          ],
+          "details": "Implement caching strategies, optimize database queries, configure connection pooling, and tune concurrent processing limits.",
+          "testStrategy": "Performance benchmarking, load testing, resource usage monitoring",
+          "subtasks": []
+        },
+        {
+          "id": "11",
+          "title": "Security & Compliance",
+          "description": "Implement security measures and compliance controls",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [
+            "6"
+          ],
+          "details": "Secure API key management, implement data encryption, configure audit logging, set up access controls for admin endpoints.",
+          "testStrategy": "Security audit, penetration testing, compliance validation",
+          "subtasks": []
+        },
+        {
+          "id": "12",
+          "title": "Production Validation & Go-Live",
+          "description": "Final production validation and system activation",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [
+            "10",
+            "11"
+          ],
+          "details": "Comprehensive end-to-end testing, performance validation, operational readiness check, and production go-live execution.",
+          "testStrategy": "End-to-end testing, performance validation, operational readiness assessment",
+          "subtasks": []
+        }
+      ]
+    }
+  },
+  "dart-production": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Production Environment Setup",
+        "description": "Configure production environment variables, database settings, and service configuration for DART batch processing system deployment.",
+        "details": "Set up production environment by creating .env.production file with secure API keys (DART_API_KEY, DATABASE_URL, KIS_API_KEY, KIS_API_SECRET, BOK_API_KEY). Configure database connection pooling, timeout settings, and SSL certificates for production database. Set up service configuration including process management (PM2), logging levels, CORS origins, rate limiting, and health check endpoints. Configure environment-specific settings for scheduler, data collection intervals, and error handling. Implement secure secret management using environment variables or cloud secret services. Set up monitoring and alerting for production services. Configure backup strategies for database and critical configuration files.",
+        "testStrategy": "Verify all environment variables are correctly loaded using config validation script. Test database connectivity with production credentials in staging environment. Validate DART API authentication and rate limiting compliance. Run health check endpoints and confirm all services start correctly. Test data collection workflows in production-like environment. Verify logging levels and monitoring alerts are functioning. Execute backup and restore procedures to ensure data integrity. Perform security audit of environment configuration and access controls.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Database Schema Migration - Apply DART database migrations for 7 new models",
+        "description": "Create and execute database migrations for 7 new DART-related models (DartDisclosure, DartCompany, DartFinancial, etc.) with optimized indexing and foreign key constraints to support the DART batch processing system.",
+        "details": "Create Prisma schema definitions for 7 new DART models: DartDisclosure (disclosure documents with metadata), DartCompany (company master data), DartFinancial (financial statements), DartStock (stock information), DartExecutive (executive information), DartAudit (audit reports), and DartNotice (regulatory notices). Each model should include appropriate fields based on DART API response structure, with proper data types (String, DateTime, Decimal for financial values). Add optimized database indexes on frequently queried fields: company_code, report_date, disclosure_type, business_year for performance. Implement foreign key constraints linking related entities (DartCompany to DartFinancial via company_code, DartDisclosure to DartCompany). Create composite indexes for common query patterns like (company_code, report_date) and (disclosure_type, created_at). Add unique constraints where appropriate (company_code + business_year for financial data). Generate and run database migrations using 'npm run db:migrate' after schema updates. Ensure backward compatibility and include rollback procedures. Update database connection configuration to handle increased table count and query complexity.",
+        "testStrategy": "Validate Prisma schema generation runs without errors using 'npm run db:generate'. Execute database migrations in development environment and verify all 7 tables are created with correct column types, indexes, and constraints. Test foreign key relationships by inserting related records and verifying cascading behavior. Run performance tests on indexed columns to confirm query optimization (target <100ms for common queries). Validate unique constraints by attempting duplicate insertions and confirming proper error handling. Test migration rollback procedures in staging environment. Verify existing application functionality remains unaffected by schema changes. Run full test suite to ensure no breaking changes to current data access patterns.",
+        "status": "pending",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "DART API Integration Configuration",
+        "description": "Configure production DART API credentials, implement rate limiting (10K calls/day), authentication flow and comprehensive error handling for the DART batch processing system.",
+        "details": "Register production DART API credentials with Korea's DART (Data Analysis, Retrieval and Transfer System) and configure secure credential storage in .env.production. Implement rate limiting middleware to respect the 10,000 calls/day limit using Redis or in-memory storage to track API usage across all DART collectors. Create authentication service that handles DART API token generation, refresh logic, and automatic retry mechanisms for expired tokens. Implement comprehensive error handling including HTTP status code mapping (400, 401, 403, 429, 500), exponential backoff retry logic with jitter, circuit breaker pattern for API failures, and fallback mechanisms when rate limits are exceeded. Add request/response logging with sanitized credential information, API usage monitoring with daily quota tracking, and alerting when approaching rate limits. Create DART API client wrapper with TypeScript interfaces for all DART endpoints, request validation, response parsing, and error transformation to application-specific exceptions.",
+        "testStrategy": "Verify DART API credentials authentication by making test API calls to DART's authentication endpoint and confirming successful token generation. Test rate limiting functionality by simulating high-volume requests and validating that 429 errors are handled gracefully when limits are approached. Create unit tests for authentication flow including token refresh scenarios and error handling paths. Test error handling by mocking various API failure scenarios (network timeouts, 500 errors, authentication failures) and confirming appropriate fallback behavior. Validate that API usage tracking accurately counts requests and prevents quota exceeded situations. Run integration tests with actual DART API in staging environment to confirm end-to-end authentication and data retrieval workflow. Test circuit breaker functionality by simulating prolonged API failures and verifying system recovery when service becomes available.",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Batch Service Deployment",
+        "description": "Deploy DART batch processing service with queue management, parallel processing, retry logic, and configure memory allocation (512MB+) for production environment.",
+        "details": "Deploy DART batch processing service to production environment with Docker containerization. Configure Node.js process with minimum 512MB memory allocation using PM2 process manager with cluster mode for parallel processing. Implement Redis-based queue management for DART data collection jobs with priority queues for different disclosure types. Set up Bull queue with job retry logic (3 attempts with exponential backoff) and dead letter queue for failed jobs. Configure parallel processing workers (4-8 workers based on server capacity) to handle concurrent DART API requests while respecting rate limits. Implement job scheduling for daily, weekly, and on-demand data collection tasks. Set up monitoring with health checks, job status tracking, and memory usage alerts. Configure log aggregation and error tracking for production debugging. Ensure graceful shutdown handling and job persistence during deployments.",
+        "testStrategy": "Deploy service to staging environment and verify container starts successfully with allocated memory (check with 'docker stats' or PM2 monitoring). Test queue management by submitting multiple DART collection jobs and confirming they process in parallel without exceeding rate limits. Validate retry logic by simulating API failures and verifying failed jobs are retried according to configuration. Load test the service with realistic data volumes to ensure memory allocation is sufficient and no memory leaks occur. Monitor queue processing times and parallel worker efficiency. Test graceful shutdown by stopping the service during active job processing and verifying jobs resume correctly on restart. Verify health check endpoints respond correctly and monitoring alerts trigger appropriately.",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Monitoring & Alerting Setup",
+        "description": "Configure comprehensive monitoring for DART batch system with performance tracking, error alerting, batch job status monitoring and operational dashboards.",
+        "details": "Implement comprehensive monitoring stack using Prometheus for metrics collection, Grafana for dashboards, and Alertmanager for notifications. Set up custom metrics for DART API rate limiting (calls remaining, quota utilization), batch job performance (processing time, success/failure rates, queue depth), and system health (memory usage, CPU utilization, database connections). Configure Winston logging with structured JSON format including correlation IDs for DART batch jobs. Create operational dashboards showing: DART API quota usage over time, batch job success rates by disclosure type, processing latency percentiles, error rates and classifications, system resource utilization. Set up alerting rules for: DART API rate limit approaching (>80% quota used), batch job failures exceeding threshold (>5% failure rate), high memory usage (>400MB sustained), database connection pool exhaustion, and service health check failures. Configure notification channels (Slack, email, PagerDuty) with severity-based routing. Implement health check endpoints (/health, /ready, /metrics) with detailed service status including database connectivity, DART API accessibility, and queue system status. Add application performance monitoring (APM) traces for DART API calls and batch processing workflows using OpenTelemetry or similar. Set up log aggregation with centralized storage and alerting on error patterns.",
+        "testStrategy": "Verify monitoring metrics collection by submitting test DART batch jobs and confirming metrics appear in Prometheus (/metrics endpoint shows dart_api_calls_total, batch_job_duration_seconds, etc.). Test alerting rules by triggering conditions (simulate high memory usage, API failures) and verify notifications are sent to configured channels within expected timeframes. Validate dashboard functionality by running batch jobs and confirming real-time updates in Grafana dashboards showing queue depth, success rates, and resource utilization. Test health check endpoints return correct status codes and detailed service information. Verify log aggregation captures structured DART batch job logs with proper correlation IDs and error details. Load test the system while monitoring performance metrics to ensure monitoring overhead is minimal (<5% CPU impact).",
+        "status": "pending",
+        "dependencies": [
+          1,
+          3,
+          4
+        ],
+        "priority": "high",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-11T22:55:49.809Z",
+      "updated": "2025-08-11T22:57:43.424Z",
+      "description": "DART batch system production integration tasks"
+    }
+  }
+}

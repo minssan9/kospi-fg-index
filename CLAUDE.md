@@ -177,3 +177,7 @@ export class DataCollector {
 - Rate limiting and CORS configured for production
 - Comprehensive logging with Winston
 - Graceful shutdown handling for server termination
+
+## Task Master AI Instructions
+**Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
+@./.taskmaster/CLAUDE.md
