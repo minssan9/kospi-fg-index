@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { performance } from 'perf_hooks'
-import MonitoringService from '../services/monitoringService'
+import MonitoringService from '@/services/monitoringService'
 
 // ============================================================================
 // TYPES AND INTERFACES

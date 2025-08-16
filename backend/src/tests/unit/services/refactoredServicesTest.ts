@@ -4,9 +4,9 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import BusinessMetricsService from '../services/businessMetricsService'
-import MonitoringService from '../services/monitoringService'
-import DatabaseHealthService from '../services/databaseHealthService'
+import BusinessMetricsService from '@/services/businessMetricsService'
+import MonitoringService from '@/services/monitoringService'
+import DatabaseHealthService from '@/services/databaseHealthService'
 import DataQueryErrorHandler from '../utils/dataQueryErrorHandler'
 
 const prisma = new PrismaClient()

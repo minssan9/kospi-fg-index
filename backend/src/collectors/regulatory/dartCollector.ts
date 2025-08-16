@@ -1,7 +1,7 @@
 import axios from 'axios'
-import type { DartDisclosureData, DartBatchRequest } from '@/types/dartTypes'
-import { logger } from '@/utils/logger'
-import { retryWithBackoff } from '@/utils/retryUtils'
+import type { DartDisclosureData, DartBatchRequest } from '@/types/collectors/dartTypes'
+import { logger } from '@/utils/common/logger'
+import { retryWithBackoff } from '@/utils/common/retryUtils'
 
 /**
  * DART (전자공시시스템) API 데이터 수집기
@@ -329,6 +329,45 @@ export class DARTCollector {
   }
 
   /**
+   * 일일 데이터 수집 (launch.json용)
+   */
+  static async collectDailyData(date?: string): Promise<void> {
+    const targetDate = date || new Date().toISOString().split('T')[0]!
+    logger.info(`[DART] 일일 데이터 수집 시작: ${targetDate}`)
+    
+    try {
+      // Simple batch collection for daily disclosures
+      const result = await this.fetchDisclosures({
+        startDate: targetDate,
+        endDate: targetDate,
+        reportCode: 'A',
+        pageCount: 100
+      })
+      logger.info(`[DART] 일일 데이터 수집 완료: ${result.length}건`)
+    } catch (error) {
+      logger.error(`[DART] 일일 데이터 수집 실패:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * 재무 데이터 수집 (launch.json용)
+   */
+  static async collectFinancialData(businessYear?: string): Promise<void> {
+    const year = businessYear || new Date().getFullYear().toString()
+    logger.info(`[DART] 재무 데이터 수집 시작: ${year}년`)
+    
+    try {
+      const corpCodes = await this.getKOSPI200CorpCodes()
+      const result = await this.collectFinancialDataBatch(corpCodes, year)
+      logger.info(`[DART] 재무 데이터 수집 완료:`, result)
+    } catch (error) {
+      logger.error(`[DART] 재무 데이터 수집 실패:`, error)
+      throw error
+    }
+  }
+
+  /**
    * 최근 영업일 구하기 (주말, 공휴일 제외)
    */
   static getLastBusinessDay(daysBack: number = 1): string {
@@ -345,7 +384,7 @@ export class DARTCollector {
       }
     }
     
-    return date.toISOString().split('T')[0]
+    return date.toISOString().split('T')[0]!
   }
 
   /**

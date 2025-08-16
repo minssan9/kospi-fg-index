@@ -4,7 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import DataQueryErrorHandler from '../utils/dataQueryErrorHandler'
+import DataQueryErrorHandler from '@/utils/data/dataQueryErrorHandler'
 
 const prisma = new PrismaClient()
 

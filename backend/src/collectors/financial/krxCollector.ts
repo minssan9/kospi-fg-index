@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { krxStockData, InvestorTradingData, OptionData } from '@/types/krxTypes'
+import type { krxStockData, InvestorTradingData, OptionData } from '@/types/collectors/krxTypes'
 
 export class KRXCollector {
   private static readonly BASE_URL = 'https://openapi.koreainvestment.com:9443'

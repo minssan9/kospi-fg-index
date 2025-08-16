@@ -18,11 +18,11 @@ try {
   console.log('  ✅ BOK Collector 타입 로드 성공')
   
   // Fear & Greed 계산기 타입만 import
-  const fearGreedTypes = require('../services/fearGreedCalculator')
+  const fearGreedTypes = require('@/services/fearGreedCalculator')
   console.log('  ✅ Fear & Greed Calculator 타입 로드 성공')
   
   // 스케줄러 타입만 import
-  const schedulerTypes = require('../services/scheduler')
+  const schedulerTypes = require('@/services/scheduler')
   console.log('  ✅ Scheduler 타입 로드 성공')
   
 } catch (error) {

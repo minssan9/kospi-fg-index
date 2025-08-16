@@ -2,11 +2,11 @@ import * as express from 'express'
 import { Request, Response } from 'express'
 import * as os from 'os'
 import { performance } from 'perf_hooks'
-import { DatabaseService } from '../services/databaseService'
-import { FearGreedCalculator } from '../services/fearGreedCalculator'
-import { KRXCollector } from '../collectors/krxCollector'
-import { BOKCollector } from '../collectors/bokCollector'
-import { formatDate } from '../utils/dateUtils'
+import { DatabaseService } from '@/services/core/databaseService'
+import { FearGreedCalculator } from '@/services/core/fearGreedCalculator'
+import { KRXCollector } from '@/collectors/financial/krxCollector'
+import { BOKCollector } from '@/collectors/financial/bokCollector'
+import { formatDate } from '@/utils/common/dateUtils'
 import { 
   authenticateAdmin, 
   generateToken, 

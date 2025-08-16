@@ -147,8 +147,8 @@ export class RetryManager {
         
         if (attempt === config.maxAttempts || !config.retryCondition!(error)) {
           logger.error(`Operation failed after ${attempt} attempts`, {
-            error: error.message,
-            stack: error.stack,
+            error: (error as Error).message,
+            stack: (error as Error).stack,
             circuitBreakerKey
           })
           throw error
@@ -160,7 +160,7 @@ export class RetryManager {
         )
 
         logger.warn(`Attempt ${attempt} failed, retrying in ${delay}ms`, {
-          error: error.message,
+          error: (error as Error).message,
           circuitBreakerKey
         })
 
@@ -188,7 +188,7 @@ export class RetryManager {
     }
 
     // API-specific errors
-    if (error.message?.includes('timeout') || error.message?.includes('rate limit')) {
+    if ((error as Error).message?.includes('timeout') || (error as Error).message?.includes('rate limit')) {
       return true
     }
 

@@ -10,19 +10,19 @@ import { createServer } from 'http';
 dotenv.config();
 
 // 라우터 import
-import apiRoutes from './routes/api';
-import fearGreedRoutes from './routes/fearGreed';
-import dataRoutes from './routes/data';
-import adminRoutes from './routes/admin';
+import apiRoutes from '@/routes/api';
+import fearGreedRoutes from '@/routes/fearGreed';
+import dataRoutes from '@/routes/data';
+import adminRoutes from '@/routes/admin';
 
 // 미들웨어 import
-import { errorHandler } from './middleware/errorHandler';
-import { rateLimiter } from './middleware/rateLimiter';
-import { requestLogger } from './middleware/logger';
+import { errorHandler } from '@/middleware/errorHandler';
+import { rateLimiter } from '@/middleware/rateLimiter';
+import { requestLogger } from '@/middleware/logger';
 
 // 유틸리티 import
-import { logger } from './utils/logger';
-import { startDataCollectionScheduler } from './services/scheduler';
+import { logger } from '@/utils/common/logger';
+import { startDataCollectionScheduler } from '@/services/infrastructure/scheduler';
 
 const app = express();
 const PORT = process.env.PORT || 3000;

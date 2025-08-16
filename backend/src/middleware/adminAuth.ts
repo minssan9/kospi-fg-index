@@ -2,12 +2,12 @@ import { Request, Response, NextFunction } from 'express'
 import * as jwt from 'jsonwebtoken'
 import * as bcrypt from 'bcrypt'
 import { PrismaClient, AdminRole } from '@prisma/client'
-import TokenService, { TokenValidationResult } from '../services/tokenService'
-import SessionService from '../services/sessionService'
-import RateLimitService from '../services/rateLimitService'
-import PasswordPolicyService from '../services/passwordPolicyService'
-import MfaService from '../services/mfaService'
-import AuditService from '@/services/auditService'
+import TokenService, { TokenValidationResult } from '@/services/auth/tokenService'
+import SessionService from '@/services/auth/sessionService'
+import RateLimitService from '@/services/config/rateLimitService'
+import PasswordPolicyService from '@/services/auth/passwordPolicyService'
+import MfaService from '@/services/auth/mfaService'
+import AuditService from '@/services/infrastructure/auditService'
 
 const prisma = new PrismaClient()
 

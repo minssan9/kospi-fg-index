@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { adminApi, type AdminUser } from '../services/adminApi'
+import { adminApi, type AdminUser } from '@/services/adminApi'
 
 // Global auth state
 const currentUser = ref<AdminUser | null>(null)

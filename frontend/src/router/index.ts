@@ -2,7 +2,7 @@ import {
   createRouter,
   createWebHistory,
 } from 'vue-router'
-import { useAuth } from '../composables/useAuth'
+import { useAuth } from '@/composables/auth/useAuth'
 
 import routes from './routes'
 

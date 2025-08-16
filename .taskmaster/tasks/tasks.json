@@ -186,7 +186,63 @@
         "status": "pending",
         "dependencies": [],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Production Environment Configuration File",
+            "description": "Set up .env.production file with all required environment variables including secure API keys, database configuration, and service settings for DART batch processing system.",
+            "dependencies": [],
+            "details": "Create .env.production file with DART_API_KEY, DATABASE_URL with SSL configuration, KIS_API_KEY, KIS_API_SECRET, BOK_API_KEY. Configure NODE_ENV=production, LOG_LEVEL=info, CORS_ORIGINS with production domains. Set up database connection pool settings (max connections: 20, timeout: 30s). Include scheduler intervals, rate limiting configuration, and health check ports. Use secure random values for JWT secrets and session keys.",
+            "status": "done",
+            "testStrategy": "Validate environment file loads correctly using config validation script. Test that all required variables are present and properly formatted. Verify database connection string format is valid."
+          },
+          {
+            "id": 2,
+            "title": "Configure Database Connection and SSL Settings",
+            "description": "Set up production database connection with SSL certificates, connection pooling, and timeout configurations optimized for DART batch processing workloads.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Configure Prisma database connection with SSL certificates for production. Set up connection pooling with pool size of 15-20 connections, connection timeout of 30 seconds, and query timeout of 60 seconds. Configure SSL mode to 'require' with proper certificate validation. Set up database connection retry logic with exponential backoff. Configure read replicas if available for query optimization.",
+            "status": "done",
+            "testStrategy": "Test database connectivity in staging environment using production connection settings. Verify SSL certificate validation works correctly. Test connection pooling under load with multiple concurrent connections."
+          },
+          {
+            "id": 3,
+            "title": "Configure Process Management with PM2",
+            "description": "Set up PM2 process manager configuration for DART batch service with cluster mode, memory limits, auto-restart policies, and log management.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Create PM2 ecosystem.config.js with cluster mode enabled (instances: 'max' or specific number based on CPU cores). Configure memory limit to 512MB with automatic restart on memory threshold. Set up auto-restart policies for crashes, configure log rotation with max file size of 100MB. Enable PM2 monitoring and set up graceful shutdown handling for SIGTERM signals. Configure environment-specific settings for production.",
+            "status": "pending",
+            "testStrategy": "Deploy PM2 configuration to staging and verify cluster mode starts correctly. Test memory limit enforcement and auto-restart functionality. Verify log rotation and monitoring work as expected."
+          },
+          {
+            "id": 4,
+            "title": "Configure Security and Rate Limiting Settings",
+            "description": "Set up CORS origins, rate limiting middleware, security headers, and API endpoint protection for production DART batch processing service.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Configure CORS with specific production domain origins, set up rate limiting middleware using express-rate-limit with Redis store for DART API endpoints (10K calls/day limit). Implement security headers using helmet.js, configure API key validation middleware, and set up request logging with correlation IDs. Configure health check endpoints (/health, /ready) with proper authentication. Set up CSRF protection and input validation.",
+            "status": "pending",
+            "testStrategy": "Test CORS configuration with production domains. Verify rate limiting works correctly by simulating API calls. Test security headers are properly set in responses. Validate health check endpoints return correct status."
+          },
+          {
+            "id": 5,
+            "title": "Set Up Monitoring and Secret Management",
+            "description": "Configure monitoring endpoints, alerting systems, backup strategies, and secure secret management for production DART batch processing environment.",
+            "dependencies": [
+              "1.2",
+              "1.3",
+              "1.4"
+            ],
+            "details": "Set up Prometheus metrics endpoints (/metrics) with custom DART batch metrics. Configure Winston logging with structured JSON format including correlation IDs and log levels. Set up automated database backup scripts with retention policies. Implement secret rotation strategy for API keys using environment variables or cloud secret management. Configure alerting for critical failures, memory usage, and API rate limit warnings. Set up log aggregation and monitoring dashboards.",
+            "status": "pending",
+            "testStrategy": "Verify monitoring endpoints return proper metrics format. Test logging outputs structured JSON with required fields. Validate backup scripts run successfully and create recoverable backups. Test alerting triggers work correctly for simulated failure conditions."
+          }
+        ]
       },
       {
         "id": 2,
@@ -248,7 +304,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T22:55:49.809Z",
-      "updated": "2025-08-11T22:57:43.424Z",
+      "updated": "2025-08-14T04:44:20.339Z",
       "description": "DART batch system production integration tasks"
     }
   }

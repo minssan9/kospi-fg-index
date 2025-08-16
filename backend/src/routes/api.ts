@@ -1,10 +1,10 @@
 import express from 'express'
-import { DatabaseService } from '../services/databaseService'
-import { FearGreedCalculator } from '../services/fearGreedCalculator'
-import { KRXCollector } from '../collectors/krxCollector'
-import { BOKCollector } from '../collectors/bokCollector'
-import { formatDate } from '@/utils/dateUtils'
-import { requireAdmin, requirePermission, AuthenticatedRequest } from '../middleware/adminAuth'
+import { DatabaseService } from '@/services/core/databaseService'
+import { FearGreedCalculator } from '@/services/core/fearGreedCalculator'
+import { KRXCollector } from '@/collectors/financial/krxCollector'
+import { BOKCollector } from '@/collectors/financial/bokCollector'
+import { formatDate } from '@/utils/common/dateUtils'
+import { requireAdmin, requirePermission, AuthenticatedRequest } from '@/middleware/adminAuth'
 
 const router = express.Router()
 
@@ -62,7 +62,7 @@ router.get('/fear-greed/history', async (req, res) => {
 
     const response = {
       success: true,
-      data: history.map(item => ({
+      data: history.map((item: any) => ({
         date: item.date.toISOString().split('T')[0],
         value: item.value,
         level: item.level,
@@ -133,7 +133,7 @@ router.get('/system/collection-status', async (req, res) => {
 
     const response = {
       success: true,
-      data: status.map(item => ({
+      data: status.map((item: any) => ({
         date: item.date.toISOString().split('T')[0],
         source: item.source,
         dataType: item.dataType,

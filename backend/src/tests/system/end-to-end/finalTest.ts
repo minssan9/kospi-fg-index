@@ -1,4 +1,4 @@
-import { FearGreedCalculator } from '../services/fearGreedCalculator'
+import { FearGreedCalculator } from '@/services/fearGreedCalculator'
 import { formatDate } from '../utils/dateUtils'
 
 /**

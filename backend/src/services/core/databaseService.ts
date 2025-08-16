@@ -3,9 +3,9 @@ import type {
   InterestRateData, 
   ExchangeRateData, 
   EconomicIndicatorData 
-} from '@/collectors/bokCollector'
+} from '@/collectors/financial/bokCollector'
 import type { FearGreedResult } from './fearGreedCalculator'
-import type { krxStockData, InvestorTradingData, OptionData } from '@/types/krxTypes'
+import type { krxStockData, InvestorTradingData, OptionData } from '@/types/collectors/krxTypes'
 
 const prisma = new PrismaClient()
 

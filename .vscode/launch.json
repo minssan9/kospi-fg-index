@@ -98,12 +98,25 @@
             "type": "node",
             "request": "launch",
             "name": "DART: Debug Collector (Direct)",
-            "program": "${workspaceFolder}/backend/src/test/dartCollectorTest.ts",
+            "program": "${workspaceFolder}/backend/src/tests/unit/collectors/dartCollectorTest.ts",
             "runtimeArgs": ["-r", "ts-node/register", "-r", "tsconfig-paths/register"],
             "cwd": "${workspaceFolder}/backend",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "envFile": "${workspaceFolder}/backend/.env"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Interactive Debugger",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["ts-node", "-r", "tsconfig-paths/register", "--inspect", "src/collectors/regulatory/dartCollector.ts"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "envFile": "${workspaceFolder}/backend/.env",
+            "stopOnEntry": false,
+            "restart": true
         }
     ]
 }

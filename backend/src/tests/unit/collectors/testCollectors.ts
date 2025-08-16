@@ -1,6 +1,6 @@
 import { KRXCollector } from '../collectors/krxCollector'
 import { BOKCollector } from '../collectors/bokCollector' 
-import { FearGreedCalculator } from '../services/fearGreedCalculator'
+import { FearGreedCalculator } from '@/services/fearGreedCalculator'
 
 /**
  * 데이터 수집기 테스트 스크립트

@@ -1,6 +1,6 @@
 import express from 'express'
 import { DARTCollector } from '../collectors/dartCollector'
-import { DartBatchService } from '../services/dartBatchService'
+import { DartBatchService } from '@/services/dartBatchService'
 import adminAuth from '../middleware/adminAuth'
 import { rateLimiter } from '../middleware/rateLimiter'
 import { logger } from '../utils/logger'

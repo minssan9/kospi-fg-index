@@ -1,4 +1,4 @@
-import { formatDate } from '@/utils/dateUtils'
+import { formatDate } from '@/utils/common/dateUtils'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()

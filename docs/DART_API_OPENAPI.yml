@@ -1,0 +1,821 @@
+openapi: 3.0.3
+info:
+  title: KOSPI Fear & Greed Index - DART API
+  description: |
+    DART (전자공시시스템) REST API for Korean corporate disclosure data collection and analysis.
+    
+    This API provides access to corporate disclosure data from Korea's DART system, 
+    integrated with the KOSPI Fear & Greed Index for market sentiment analysis.
+    
+    ## Features
+    - Corporate disclosure data retrieval
+    - Company information lookup
+    - Financial data access
+    - KOSPI 200 constituent data
+    - Batch processing management (admin only)
+    - Real-time health monitoring
+    - Collection statistics
+    
+    ## Rate Limiting
+    - DART API has a limit of 10,000 calls per day
+    - Internal rate limiting: 100ms delay between requests
+    - Circuit breaker protection for external API failures
+    
+    ## Authentication
+    - Public endpoints: Available without authentication
+    - Admin endpoints: Require admin authentication token
+    - Test endpoints: Only available in development/test environments
+  version: 1.0.0
+  contact:
+    name: KOSPI Fear & Greed Index API Support
+    email: api-support@kospi-fg-index.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/dart
+    description: Development server
+  - url: https://api.kospi-fg-index.com/api/dart
+    description: Production server
+
+tags:
+  - name: Disclosures
+    description: Corporate disclosure data operations
+  - name: Companies
+    description: Company information and lookup
+  - name: Financial
+    description: Financial statements and data
+  - name: KOSPI 200
+    description: KOSPI 200 constituent companies
+  - name: Batch Management
+    description: Batch processing operations (admin only)
+  - name: Health & Statistics
+    description: System health and collection statistics
+  - name: Testing
+    description: Development and testing endpoints
+
+paths:
+  /disclosures:
+    get:
+      tags:
+        - Disclosures
+      summary: Retrieve corporate disclosures
+      description: |
+        Fetch corporate disclosure data from DART for a specified date range.
+        
+        Supports filtering by company code, report type, and sentiment relevance.
+        Results are paginated with a maximum of 100 items per page.
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          description: Start date for disclosure search (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: endDate
+          in: query
+          required: true
+          description: End date for disclosure search (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            example: "2024-01-31"
+        - name: corpCode
+          in: query
+          required: false
+          description: DART company code (8-digit unique identifier)
+          schema:
+            type: string
+            pattern: "^[0-9]{8}$"
+            example: "00126380"
+        - name: reportCode
+          in: query
+          required: false
+          description: DART report type code
+          schema:
+            type: string
+            example: "A001"
+        - name: sentimentOnly
+          in: query
+          required: false
+          description: Filter only sentiment-relevant disclosures for Fear & Greed Index
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of items per page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Successfully retrieved disclosure data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisclosureResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /companies:
+    get:
+      tags:
+        - Companies
+      summary: Get company information
+      description: Retrieve detailed company information by DART company code
+      parameters:
+        - name: corpCode
+          in: query
+          required: true
+          description: DART company code (8-digit unique identifier)
+          schema:
+            type: string
+            pattern: "^[0-9]{8}$"
+            example: "00126380"
+      responses:
+        '200':
+          description: Successfully retrieved company information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+        '400':
+          description: Missing or invalid company code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /financial:
+    get:
+      tags:
+        - Financial
+      summary: Get financial information
+      description: Retrieve financial statements and data for a specific company and business year
+      parameters:
+        - name: corpCode
+          in: query
+          required: true
+          description: DART company code (8-digit unique identifier)
+          schema:
+            type: string
+            pattern: "^[0-9]{8}$"
+            example: "00126380"
+        - name: businessYear
+          in: query
+          required: true
+          description: Business year for financial data
+          schema:
+            type: string
+            pattern: "^[0-9]{4}$"
+            example: "2023"
+        - name: reportCode
+          in: query
+          required: false
+          description: Report type code (default: 11011 for annual report)
+          schema:
+            type: string
+            default: "11011"
+            example: "11011"
+      responses:
+        '200':
+          description: Successfully retrieved financial information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialResponse'
+        '400':
+          description: Missing required parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /kospi200:
+    get:
+      tags:
+        - KOSPI 200
+      summary: Get KOSPI 200 constituent companies
+      description: Retrieve the list of DART company codes for current KOSPI 200 constituents
+      responses:
+        '200':
+          description: Successfully retrieved KOSPI 200 company codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KOSPI200Response'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /batch/daily:
+    post:
+      tags:
+        - Batch Management
+      summary: Schedule daily disclosure collection
+      description: |
+        Schedule a batch job to collect daily disclosure data for a specific date.
+        
+        **Admin authentication required.**
+      security:
+        - adminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+              properties:
+                date:
+                  type: string
+                  format: date
+                  description: Date for which to collect disclosures (YYYY-MM-DD)
+                  example: "2024-01-15"
+                options:
+                  type: object
+                  description: Additional collection options
+                  properties:
+                    priority:
+                      type: string
+                      enum: [low, normal, high]
+                      default: normal
+                    corpCodes:
+                      type: array
+                      items:
+                        type: string
+                      description: Specific company codes to collect (optional)
+      responses:
+        '200':
+          description: Batch job successfully scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchJobResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /batch/financial:
+    post:
+      tags:
+        - Batch Management
+      summary: Schedule financial data collection
+      description: |
+        Schedule a batch job to collect financial data for all KOSPI 200 companies for a specific business year.
+        
+        **Admin authentication required.**
+      security:
+        - adminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - businessYear
+              properties:
+                businessYear:
+                  type: string
+                  pattern: "^[0-9]{4}$"
+                  description: Business year for financial data collection
+                  example: "2023"
+      responses:
+        '200':
+          description: Batch job successfully scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchJobResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /batch/status:
+    get:
+      tags:
+        - Batch Management
+      summary: Get batch service status
+      description: |
+        Retrieve the current status of the DART batch processing service, including queue information and job statistics.
+        
+        **Admin authentication required.**
+      security:
+        - adminAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved batch service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchStatusResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      tags:
+        - Health & Statistics
+      summary: DART API health check
+      description: Check the operational status of the DART API integration and external connectivity
+      responses:
+        '200':
+          description: Service is operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stats:
+    get:
+      tags:
+        - Health & Statistics
+      summary: Get collection statistics
+      description: Retrieve statistics about DART data collection for a specific date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: Date for statistics (default: today)
+          schema:
+            type: string
+            format: date
+            example: "2024-01-15"
+      responses:
+        '200':
+          description: Successfully retrieved statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /test:
+    post:
+      tags:
+        - Testing
+      summary: Test DART collector functionality
+      description: |
+        Execute various tests of the DART collector functionality.
+        
+        **Only available in development and test environments.**
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                testType:
+                  type: string
+                  enum: [basic, disclosures, kospi200, filter]
+                  default: basic
+                  description: Type of test to execute
+                date:
+                  type: string
+                  format: date
+                  description: Test date (optional, defaults to last business day)
+      responses:
+        '200':
+          description: Test executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '403':
+          description: Not available in production environment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Test execution failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    adminAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Admin authentication token
+
+  schemas:
+    DisclosureResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            disclosures:
+              type: array
+              items:
+                $ref: '#/components/schemas/Disclosure'
+            total:
+              type: integer
+              example: 15
+            params:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                corpCode:
+                  type: string
+                  nullable: true
+                reportCode:
+                  type: string
+                  nullable: true
+                sentimentOnly:
+                  type: boolean
+                page:
+                  type: integer
+                limit:
+                  type: integer
+
+    Disclosure:
+      type: object
+      properties:
+        corpCode:
+          type: string
+          description: DART company code
+          example: "00126380"
+        corpName:
+          type: string
+          description: Company name
+          example: "삼성전자"
+        stockCode:
+          type: string
+          description: Stock code
+          example: "005930"
+        reportName:
+          type: string
+          description: Report name
+          example: "사업보고서"
+        receiptNumber:
+          type: string
+          description: Receipt number
+          example: "20240101000001"
+        flrName:
+          type: string
+          description: Filer name
+          example: "삼성전자"
+        receiptDate:
+          type: string
+          description: Receipt date (YYYYMMDD)
+          example: "20240101"
+        disclosureDate:
+          type: string
+          description: Disclosure date (YYYYMMDD)
+          example: "20240101"
+        reportCode:
+          type: string
+          description: Report type code
+          example: "A001"
+        remarks:
+          type: string
+          description: Additional remarks
+          example: ""
+
+    CompanyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Company'
+
+    Company:
+      type: object
+      properties:
+        corpCode:
+          type: string
+          description: DART company code
+          example: "00126380"
+        corpName:
+          type: string
+          description: Company name
+          example: "삼성전자"
+        stockCode:
+          type: string
+          description: Stock code
+          example: "005930"
+        modifyDate:
+          type: string
+          description: Last modification date
+          example: "20240101"
+
+    FinancialResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Financial'
+
+    Financial:
+      type: object
+      properties:
+        corpCode:
+          type: string
+          description: DART company code
+          example: "00126380"
+        businessYear:
+          type: string
+          description: Business year
+          example: "2023"
+        reportCode:
+          type: string
+          description: Report type code
+          example: "11011"
+        financialData:
+          type: object
+          description: Financial statement data
+          additionalProperties: true
+
+    KOSPI200Response:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            corpCodes:
+              type: array
+              items:
+                type: string
+              example: ["00126380", "00164779", "00158756"]
+            count:
+              type: integer
+              example: 200
+            description:
+              type: string
+              example: "KOSPI 200 구성 종목의 DART 고유번호 목록"
+
+    BatchJobResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            jobId:
+              type: string
+              description: Unique job identifier
+              example: "batch_20240115_daily_001"
+            message:
+              type: string
+              example: "2024-01-15 일별 공시 배치 수집이 예약되었습니다."
+
+    BatchStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            isRunning:
+              type: boolean
+              example: true
+            queueSize:
+              type: integer
+              example: 5
+            activeJobs:
+              type: integer
+              example: 2
+            completedJobs:
+              type: integer
+              example: 125
+            failedJobs:
+              type: integer
+              example: 3
+            lastJobCompleted:
+              type: string
+              format: date-time
+              example: "2024-01-15T18:30:00Z"
+            statistics:
+              type: object
+              properties:
+                totalDisclosuresCollected:
+                  type: integer
+                  example: 15420
+                averageJobDuration:
+                  type: number
+                  format: float
+                  example: 145.5
+                successRate:
+                  type: number
+                  format: float
+                  example: 97.6
+
+    HealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            isOperational:
+              type: boolean
+              example: true
+            rateLimit:
+              type: object
+              properties:
+                remaining:
+                  type: integer
+                  example: 9845
+                limit:
+                  type: integer
+                  example: 10000
+                resetTime:
+                  type: string
+                  format: date-time
+                  example: "2024-01-16T00:00:00Z"
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-01-15T18:30:00Z"
+            lastError:
+              type: string
+              nullable: true
+              example: null
+
+    StatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            date:
+              type: string
+              format: date
+              example: "2024-01-15"
+            totalDisclosures:
+              type: integer
+              example: 145
+            sentimentRelevant:
+              type: integer
+              example: 32
+            apiCalls:
+              type: integer
+              example: 87
+            successRate:
+              type: number
+              format: float
+              example: 98.5
+            averageResponseTime:
+              type: number
+              format: float
+              example: 234.5
+
+    TestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        testType:
+          type: string
+          example: "disclosures"
+        testDate:
+          type: string
+          format: date
+          example: "2024-01-15"
+        data:
+          type: object
+          description: Test result data
+          additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: "Invalid request parameters"
+        message:
+          type: string
+          description: Detailed error information
+          example: "startDate와 endDate는 필수 파라미터입니다."
+        example:
+          type: string
+          description: Usage example (if applicable)
+          example: "?startDate=2024-01-01&endDate=2024-01-31"

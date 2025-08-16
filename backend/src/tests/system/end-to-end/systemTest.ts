@@ -1,5 +1,5 @@
-import { DatabaseService } from '../services/databaseService'
-import { FearGreedCalculator } from '../services/fearGreedCalculator'
+import { DatabaseService } from '@/services/databaseService'
+import { FearGreedCalculator } from '@/services/fearGreedCalculator'
 import { formatDate } from '../utils/dateUtils'
 
 /**

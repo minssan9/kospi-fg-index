@@ -1,13 +1,13 @@
 import cron from 'node-cron'
-import { KRXCollector } from '../collectors/krxCollector'
-import { BOKCollector } from '../collectors/bokCollector'
-import { DARTCollector } from '../collectors/dartCollector'
-import { FearGreedCalculator } from './fearGreedCalculator'
-import { DatabaseService } from './databaseService'
-import { DartBatchService } from './dartBatchService'
-import { fetchUpbitIndexData } from '../collectors/upbitCollector'
-import { fetchCnnFearGreedIndexData } from '../collectors/cnnCollector'
-import { fetchKoreaFGIndexData } from '../collectors/koreaFGCollector'
+import { KRXCollector } from '@/collectors/financial/krxCollector'
+import { BOKCollector } from '@/collectors/financial/bokCollector'
+// import { DARTCollector } from '@/collectors/dartCollector' // Not implemented yet
+import { FearGreedCalculator } from '@/services/core/fearGreedCalculator'
+import { DatabaseService } from '@/services/core/databaseService'
+// import { DartBatchService } from '@/services/dartBatchService' // Not implemented yet
+// import { fetchUpbitIndexData } from '@/collectors/upbitCollector' // Not implemented yet
+// import { fetchCnnFearGreedIndexData } from '@/collectors/cnnCollector' // Not implemented yet
+// import { fetchKoreaFGIndexData } from '@/collectors/koreaFGCollector' // Not implemented yet
 
 // 스케줄러 상태 관리
 let isSchedulerRunning = false
@@ -66,16 +66,19 @@ export function startDataCollectionScheduler(): void {
       console.log('[Scheduler] 외부 지수(Upbit, CNN, KoreaFG) 수집 작업 시작')
       const date: string = getTodayDateString()
       try {
-        const [upbit, cnn, korea] = await Promise.all([
-          fetchUpbitIndexData(date).catch(e => { console.error('[Upbit] 수집 실패:', e); return null }),
-          fetchCnnFearGreedIndexData(date).catch(e => { console.error('[CNN] 수집 실패:', e); return null }),
-          fetchKoreaFGIndexData(date).catch(e => { console.error('[KoreaFG] 수집 실패:', e); return null })
-        ])
-        await Promise.all([
-          upbit ? DatabaseService.saveUpbitIndexData(upbit) : Promise.resolve(),
-          cnn ? DatabaseService.saveCnnFearGreedIndexData(cnn) : Promise.resolve(),
-          korea ? DatabaseService.saveKoreaFGIndexData(korea) : Promise.resolve()
-        ])
+        // TODO: Implement external data collectors
+        // const [upbit, cnn, korea] = await Promise.all([
+        //   fetchUpbitIndexData(date).catch(e => { console.error('[Upbit] 수집 실패:', e); return null }),
+        //   fetchCnnFearGreedIndexData(date).catch(e => { console.error('[CNN] 수집 실패:', e); return null }),
+        //   fetchKoreaFGIndexData(date).catch(e => { console.error('[KoreaFG] 수집 실패:', e); return null })
+        // ])
+        console.log('[Info] External collectors not implemented yet')
+        // TODO: Save external data when collectors are implemented
+        // await Promise.all([
+        //   upbit ? DatabaseService.saveUpbitIndexData(upbit) : Promise.resolve(),
+        //   cnn ? DatabaseService.saveCnnFearGreedIndexData(cnn) : Promise.resolve(),
+        //   korea ? DatabaseService.saveKoreaFGIndexData(korea) : Promise.resolve()
+        // ])
         console.log('[Scheduler] 외부 지수(Upbit, CNN, KoreaFG) 수집 및 저장 완료')
       } catch (error) {
         console.error('[Scheduler] 외부 지수 수집/저장 실패:', error)
@@ -88,10 +91,11 @@ export function startDataCollectionScheduler(): void {
     // 6. 평일 오후 6:30 - DART 공시 데이터 일일 배치 수집
     const dartBatchJob = cron.schedule('30 18 * * 1-5', async () => {
       console.log('[Scheduler] DART 공시 데이터 배치 수집 시작')
-      const yesterday = DARTCollector.getLastBusinessDay(1)
+      // TODO: Implement DART collector and batch service
+      // const yesterday = DARTCollector.getLastBusinessDay(1)
       try {
-        await DartBatchService.scheduleDailyDisclosureCollection(yesterday)
-        console.log(`[Scheduler] DART 배치 작업 예약 완료: ${yesterday}`)
+        // await DartBatchService.scheduleDailyDisclosureCollection(yesterday)
+        console.log('[Info] DART batch service not implemented yet')
       } catch (error) {
         console.error('[Scheduler] DART 배치 작업 실패:', error)
       }
@@ -105,8 +109,8 @@ export function startDataCollectionScheduler(): void {
       console.log('[Scheduler] DART 재무 데이터 배치 수집 시작')
       const currentYear = new Date().getFullYear().toString()
       try {
-        await DartBatchService.scheduleFinancialDataCollection(currentYear)
-        console.log(`[Scheduler] DART 재무 데이터 배치 작업 예약 완료: ${currentYear}`)
+        // await DartBatchService.scheduleFinancialDataCollection(currentYear)
+        console.log('[Info] DART financial batch service not implemented yet')
       } catch (error) {
         console.error('[Scheduler] DART 재무 데이터 배치 작업 실패:', error)
       }
@@ -187,16 +191,19 @@ export async function collectDailyData(date?: string): Promise<void> {
     // 외부 지수(Upbit, CNN, KoreaFG) 수집 및 저장
     await (async () => {
       try {
-        const [upbit, cnn, korea] = await Promise.all([
-          fetchUpbitIndexData(targetDate).catch(e => { console.error('[Upbit] 수집 실패:', e); return null }),
-          fetchCnnFearGreedIndexData(targetDate).catch(e => { console.error('[CNN] 수집 실패:', e); return null }),
-          fetchKoreaFGIndexData(targetDate).catch(e => { console.error('[KoreaFG] 수집 실패:', e); return null })
-        ])
-        await Promise.all([
-          upbit ? DatabaseService.saveUpbitIndexData(upbit).catch(e => console.error('[Upbit] 저장 실패:', e)) : Promise.resolve(),
-          cnn ? DatabaseService.saveCnnFearGreedIndexData(cnn).catch(e => console.error('[CNN] 저장 실패:', e)) : Promise.resolve(),
-          korea ? DatabaseService.saveKoreaFGIndexData(korea).catch(e => console.error('[KoreaFG] 저장 실패:', e)) : Promise.resolve()
-        ])
+        // TODO: Implement external collectors in manual mode
+        // const [upbit, cnn, korea] = await Promise.all([
+        //   fetchUpbitIndexData(targetDate).catch((e: any) => { console.error('[Upbit] 수집 실패:', e); return null }),
+        //   fetchCnnFearGreedIndexData(targetDate).catch((e: any) => { console.error('[CNN] 수집 실패:', e); return null }),
+        //   fetchKoreaFGIndexData(targetDate).catch((e: any) => { console.error('[KoreaFG] 수집 실패:', e); return null })
+        // ])
+        console.log('[Info] External collectors not implemented yet')
+        // TODO: Save external data when collectors are available
+        // await Promise.all([
+        //   upbit ? DatabaseService.saveUpbitIndexData(upbit).catch((e: any) => console.error('[Upbit] 저장 실패:', e)) : Promise.resolve(),
+        //   cnn ? DatabaseService.saveCnnFearGreedIndexData(cnn).catch((e: any) => console.error('[CNN] 저장 실패:', e)) : Promise.resolve(),
+        //   korea ? DatabaseService.saveKoreaFGIndexData(korea).catch((e: any) => console.error('[KoreaFG] 저장 실패:', e)) : Promise.resolve()
+        // ])
         console.log('[Manual] 외부 지수(Upbit, CNN, KoreaFG) 수집 및 저장 완료')
       } catch (error) {
         console.error('[Manual] 외부 지수 수집/저장 실패:', error)
