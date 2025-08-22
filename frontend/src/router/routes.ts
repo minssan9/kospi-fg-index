@@ -24,6 +24,11 @@ const routes: RouteRecordRaw[] = [
         path: 'about', 
         component: () => import('pages/AboutPage.vue'),
         meta: { title: 'About - Fear & Greed Index' }
+      },
+      { 
+        path: 'dart-data', 
+        component: () => import('pages/DartDataPage.vue'),
+        meta: { title: 'DART 공시 데이터' }
       }
     ],
   },
@@ -64,6 +69,18 @@ const routes: RouteRecordRaw[] = [
         name: 'admin-calculator',
         component: () => import('pages/admin/CalculatorPage.vue'),
         meta: { title: 'Calculator Management' }
+      },
+      {
+        path: 'dart',
+        name: 'admin-dart',
+        component: () => import('pages/admin/DartAdminPage.vue'),
+        meta: { title: 'DART Data Management' }
+      },
+      {
+        path: 'fear-greed',
+        name: 'admin-fear-greed',
+        component: () => import('pages/admin/FearGreedAdminPage.vue'),
+        meta: { title: 'Fear & Greed Index Management' }
       }
     ]
   },

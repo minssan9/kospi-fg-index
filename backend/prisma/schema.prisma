@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,409 +7,383 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Fear & Greed Index 일일 데이터
 model FearGreedIndex {
-  id        Int      @id @default(autoincrement())
-  date      DateTime @unique @db.Date
-  value     Int      // 0-100 범위의 지수 값
-  level     String   // "Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"
-  confidence Int     // 신뢰도 (0-100)
-  
-  // 구성 요소별 값들 (0-100 범위)
-  priceMomentum     Int // 주가 모멘텀
-  investorSentiment Int // 투자자 심리
-  putCallRatio      Int // 풋/콜 비율
-  volatilityIndex   Int // 변동성 지수
-  safeHavenDemand   Int // 안전자산 수요
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id                Int      @id @default(autoincrement())
+  date              DateTime @unique @db.Date
+  value             Int
+  level             String
+  confidence        Int
+  priceMomentum     Int
+  investorSentiment Int
+  putCallRatio      Int
+  volatilityIndex   Int
+  safeHavenDemand   Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
   @@map("sentiment_fear_greed_index")
 }
 
-// KOSPI 일일 데이터 (KRX Collector 데이터 구조에 맞춤)
 model KospiData {
-  id            Int      @id @default(autoincrement())
-  date          DateTime @unique @db.Date
-  // --- Begin krxStockData fields ---
-  iscd_stat_cls_code String
-  marg_rate String
-  rprs_mrkt_kor_name String
-  new_hgpr_lwpr_cls_code String
-  bstp_kor_isnm String
-  temp_stop_yn String
-  oprc_rang_cont_yn String
-  clpr_rang_cont_yn String
-  crdt_able_yn String
-  grmn_rate_cls_code String
-  elw_pblc_yn String
-  stck_prpr String
-  prdy_vrss String
-  prdy_vrss_sign String
-  prdy_ctrt String
-  acml_tr_pbmn String
-  acml_vol String
-  prdy_vrss_vol_rate String
-  stck_oprc String
-  stck_hgpr String
-  stck_lwpr String
-  stck_mxpr String
-  stck_llam String
-  stck_sdpr String
-  wghn_avrg_stck_prc String
-  hts_frgn_ehrt String
-  frgn_ntby_qty String
-  pgtr_ntby_qty String
-  pvt_scnd_dmrs_prc String
-  pvt_frst_dmrs_prc String
-  pvt_pont_val String
-  pvt_frst_dmsp_prc String
-  pvt_scnd_dmsp_prc String
-  dmrs_val String
-  dmsp_val String
-  cpfn String
-  rstc_wdth_prc String
-  stck_fcam String
-  stck_sspr String
-  aspr_unit String
-  hts_deal_qty_unit_val String
-  lstn_stcn String
-  hts_avls String
-  per String
-  pbr String
-  stac_month String
-  vol_tnrt String
-  eps String
-  bps String
-  d250_hgpr String
-  d250_hgpr_date String
+  id                       Int      @id @default(autoincrement())
+  date                     DateTime @unique @db.Date
+  iscd_stat_cls_code       String
+  marg_rate                String
+  rprs_mrkt_kor_name       String
+  new_hgpr_lwpr_cls_code   String
+  bstp_kor_isnm            String
+  temp_stop_yn             String
+  oprc_rang_cont_yn        String
+  clpr_rang_cont_yn        String
+  crdt_able_yn             String
+  grmn_rate_cls_code       String
+  elw_pblc_yn              String
+  stck_prpr                String
+  prdy_vrss                String
+  prdy_vrss_sign           String
+  prdy_ctrt                String
+  acml_tr_pbmn             String
+  acml_vol                 String
+  prdy_vrss_vol_rate       String
+  stck_oprc                String
+  stck_hgpr                String
+  stck_lwpr                String
+  stck_mxpr                String
+  stck_llam                String
+  stck_sdpr                String
+  wghn_avrg_stck_prc       String
+  hts_frgn_ehrt            String
+  frgn_ntby_qty            String
+  pgtr_ntby_qty            String
+  pvt_scnd_dmrs_prc        String
+  pvt_frst_dmrs_prc        String
+  pvt_pont_val             String
+  pvt_frst_dmsp_prc        String
+  pvt_scnd_dmsp_prc        String
+  dmrs_val                 String
+  dmsp_val                 String
+  cpfn                     String
+  rstc_wdth_prc            String
+  stck_fcam                String
+  stck_sspr                String
+  aspr_unit                String
+  hts_deal_qty_unit_val    String
+  lstn_stcn                String
+  hts_avls                 String
+  per                      String
+  pbr                      String
+  stac_month               String
+  vol_tnrt                 String
+  eps                      String
+  bps                      String
+  d250_hgpr                String
+  d250_hgpr_date           String
   d250_hgpr_vrss_prpr_rate String
-  d250_lwpr String
-  d250_lwpr_date String
+  d250_lwpr                String
+  d250_lwpr_date           String
   d250_lwpr_vrss_prpr_rate String
-  stck_dryy_hgpr String
+  stck_dryy_hgpr           String
   dryy_hgpr_vrss_prpr_rate String
-  dryy_hgpr_date String
-  stck_dryy_lwpr String
+  dryy_hgpr_date           String
+  stck_dryy_lwpr           String
   dryy_lwpr_vrss_prpr_rate String
-  dryy_lwpr_date String
-  w52_hgpr String
-  w52_hgpr_vrss_prpr_ctrt String
-  w52_hgpr_date String
-  w52_lwpr String
-  w52_lwpr_vrss_prpr_ctrt String
-  w52_lwpr_date String
-  whol_loan_rmnd_rate String
-  ssts_yn String
-  stck_shrn_iscd String
-  fcam_cnnm String
-  cpfn_cnnm String
-  apprch_rate String
-  frgn_hldn_qty String
-  vi_cls_code String
-  ovtm_vi_cls_code String
-  last_ssts_cntg_qty String
-  invt_caful_yn String
-  mrkt_warn_cls_code String
-  short_over_yn String
-  sltr_yn String
-  mang_issu_cls_code String
-  // --- End krxStockData fields ---
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  dryy_lwpr_date           String
+  w52_hgpr                 String
+  w52_hgpr_vrss_prpr_ctrt  String
+  w52_hgpr_date            String
+  w52_lwpr                 String
+  w52_lwpr_vrss_prpr_ctrt  String
+  w52_lwpr_date            String
+  whol_loan_rmnd_rate      String
+  ssts_yn                  String
+  stck_shrn_iscd           String
+  fcam_cnnm                String
+  cpfn_cnnm                String
+  apprch_rate              String
+  frgn_hldn_qty            String
+  vi_cls_code              String
+  ovtm_vi_cls_code         String
+  last_ssts_cntg_qty       String
+  invt_caful_yn            String
+  mrkt_warn_cls_code       String
+  short_over_yn            String
+  sltr_yn                  String
+  mang_issu_cls_code       String
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
   @@map("market_kospi_data")
 }
 
-// KOSDAQ 일일 데이터
 model KosdaqData {
-  id            Int      @id @default(autoincrement())
-  date          DateTime @unique @db.Date
-  // --- Begin krxStockData fields ---
-  iscd_stat_cls_code String
-  marg_rate String
-  rprs_mrkt_kor_name String
-  new_hgpr_lwpr_cls_code String
-  bstp_kor_isnm String
-  temp_stop_yn String
-  oprc_rang_cont_yn String
-  clpr_rang_cont_yn String
-  crdt_able_yn String
-  grmn_rate_cls_code String
-  elw_pblc_yn String
-  stck_prpr String
-  prdy_vrss String
-  prdy_vrss_sign String
-  prdy_ctrt String
-  acml_tr_pbmn String
-  acml_vol String
-  prdy_vrss_vol_rate String
-  stck_oprc String
-  stck_hgpr String
-  stck_lwpr String
-  stck_mxpr String
-  stck_llam String
-  stck_sdpr String
-  wghn_avrg_stck_prc String
-  hts_frgn_ehrt String
-  frgn_ntby_qty String
-  pgtr_ntby_qty String
-  pvt_scnd_dmrs_prc String
-  pvt_frst_dmrs_prc String
-  pvt_pont_val String
-  pvt_frst_dmsp_prc String
-  pvt_scnd_dmsp_prc String
-  dmrs_val String
-  dmsp_val String
-  cpfn String
-  rstc_wdth_prc String
-  stck_fcam String
-  stck_sspr String
-  aspr_unit String
-  hts_deal_qty_unit_val String
-  lstn_stcn String
-  hts_avls String
-  per String
-  pbr String
-  stac_month String
-  vol_tnrt String
-  eps String
-  bps String
-  d250_hgpr String
-  d250_hgpr_date String
+  id                       Int      @id @default(autoincrement())
+  date                     DateTime @unique @db.Date
+  iscd_stat_cls_code       String
+  marg_rate                String
+  rprs_mrkt_kor_name       String
+  new_hgpr_lwpr_cls_code   String
+  bstp_kor_isnm            String
+  temp_stop_yn             String
+  oprc_rang_cont_yn        String
+  clpr_rang_cont_yn        String
+  crdt_able_yn             String
+  grmn_rate_cls_code       String
+  elw_pblc_yn              String
+  stck_prpr                String
+  prdy_vrss                String
+  prdy_vrss_sign           String
+  prdy_ctrt                String
+  acml_tr_pbmn             String
+  acml_vol                 String
+  prdy_vrss_vol_rate       String
+  stck_oprc                String
+  stck_hgpr                String
+  stck_lwpr                String
+  stck_mxpr                String
+  stck_llam                String
+  stck_sdpr                String
+  wghn_avrg_stck_prc       String
+  hts_frgn_ehrt            String
+  frgn_ntby_qty            String
+  pgtr_ntby_qty            String
+  pvt_scnd_dmrs_prc        String
+  pvt_frst_dmrs_prc        String
+  pvt_pont_val             String
+  pvt_frst_dmsp_prc        String
+  pvt_scnd_dmsp_prc        String
+  dmrs_val                 String
+  dmsp_val                 String
+  cpfn                     String
+  rstc_wdth_prc            String
+  stck_fcam                String
+  stck_sspr                String
+  aspr_unit                String
+  hts_deal_qty_unit_val    String
+  lstn_stcn                String
+  hts_avls                 String
+  per                      String
+  pbr                      String
+  stac_month               String
+  vol_tnrt                 String
+  eps                      String
+  bps                      String
+  d250_hgpr                String
+  d250_hgpr_date           String
   d250_hgpr_vrss_prpr_rate String
-  d250_lwpr String
-  d250_lwpr_date String
+  d250_lwpr                String
+  d250_lwpr_date           String
   d250_lwpr_vrss_prpr_rate String
-  stck_dryy_hgpr String
+  stck_dryy_hgpr           String
   dryy_hgpr_vrss_prpr_rate String
-  dryy_hgpr_date String
-  stck_dryy_lwpr String
+  dryy_hgpr_date           String
+  stck_dryy_lwpr           String
   dryy_lwpr_vrss_prpr_rate String
-  dryy_lwpr_date String
-  w52_hgpr String
-  w52_hgpr_vrss_prpr_ctrt String
-  w52_hgpr_date String
-  w52_lwpr String
-  w52_lwpr_vrss_prpr_ctrt String
-  w52_lwpr_date String
-  whol_loan_rmnd_rate String
-  ssts_yn String
-  stck_shrn_iscd String
-  fcam_cnnm String
-  cpfn_cnnm String
-  apprch_rate String
-  frgn_hldn_qty String
-  vi_cls_code String
-  ovtm_vi_cls_code String
-  last_ssts_cntg_qty String
-  invt_caful_yn String
-  mrkt_warn_cls_code String
-  short_over_yn String
-  sltr_yn String
-  mang_issu_cls_code String
-  // --- End krxStockData fields ---
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  dryy_lwpr_date           String
+  w52_hgpr                 String
+  w52_hgpr_vrss_prpr_ctrt  String
+  w52_hgpr_date            String
+  w52_lwpr                 String
+  w52_lwpr_vrss_prpr_ctrt  String
+  w52_lwpr_date            String
+  whol_loan_rmnd_rate      String
+  ssts_yn                  String
+  stck_shrn_iscd           String
+  fcam_cnnm                String
+  cpfn_cnnm                String
+  apprch_rate              String
+  frgn_hldn_qty            String
+  vi_cls_code              String
+  ovtm_vi_cls_code         String
+  last_ssts_cntg_qty       String
+  invt_caful_yn            String
+  mrkt_warn_cls_code       String
+  short_over_yn            String
+  sltr_yn                  String
+  mang_issu_cls_code       String
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
   @@map("market_kosdaq_data")
 }
 
-// 투자자별 매매동향 (KRX Collector 구조에 맞춤)
 model InvestorTrading {
   id                    Int      @id @default(autoincrement())
   date                  DateTime @unique @db.Date
-  // --- Begin InvestorTradingData fields ---
-  frgn_seln_vol String
-  frgn_shnu_vol String
-  frgn_ntby_qty String
-  frgn_seln_tr_pbmn String
-  frgn_shnu_tr_pbmn String
-  frgn_ntby_tr_pbmn String
-  prsn_seln_vol String
-  prsn_shnu_vol String
-  prsn_ntby_qty String
-  prsn_seln_tr_pbmn String
-  prsn_shnu_tr_pbmn String
-  prsn_ntby_tr_pbmn String
-  orgn_seln_vol String
-  orgn_shnu_vol String
-  orgn_ntby_qty String
-  orgn_seln_tr_pbmn String
-  orgn_shnu_tr_pbmn String
-  orgn_ntby_tr_pbmn String
-  scrt_seln_vol String
-  scrt_shnu_vol String
-  scrt_ntby_qty String
-  scrt_seln_tr_pbmn String
-  scrt_shnu_tr_pbmn String
-  scrt_ntby_tr_pbmn String
-  ivtr_seln_vol String
-  ivtr_shnu_vol String
-  ivtr_ntby_qty String
-  ivtr_seln_tr_pbmn String
-  ivtr_shnu_tr_pbmn String
-  ivtr_ntby_tr_pbmn String
-  pe_fund_seln_tr_pbmn String
-  pe_fund_seln_vol String
-  pe_fund_ntby_vol String
-  pe_fund_shnu_tr_pbmn String
-  pe_fund_shnu_vol String
-  pe_fund_ntby_tr_pbmn String
-  bank_seln_vol String
-  bank_shnu_vol String
-  bank_ntby_qty String
-  bank_seln_tr_pbmn String
-  bank_shnu_tr_pbmn String
-  bank_ntby_tr_pbmn String
-  insu_seln_vol String
-  insu_shnu_vol String
-  insu_ntby_qty String
-  insu_seln_tr_pbmn String
-  insu_shnu_tr_pbmn String
-  insu_ntby_tr_pbmn String
-  mrbn_seln_vol String
-  mrbn_shnu_vol String
-  mrbn_ntby_qty String
-  mrbn_seln_tr_pbmn String
-  mrbn_shnu_tr_pbmn String
-  mrbn_ntby_tr_pbmn String
-  fund_seln_vol String
-  fund_shnu_vol String
-  fund_ntby_qty String
-  fund_seln_tr_pbmn String
-  fund_shnu_tr_pbmn String
-  fund_ntby_tr_pbmn String
-  etc_orgt_seln_vol String
-  etc_orgt_shnu_vol String
-  etc_orgt_ntby_vol String
+  frgn_seln_vol         String
+  frgn_shnu_vol         String
+  frgn_ntby_qty         String
+  frgn_seln_tr_pbmn     String
+  frgn_shnu_tr_pbmn     String
+  frgn_ntby_tr_pbmn     String
+  prsn_seln_vol         String
+  prsn_shnu_vol         String
+  prsn_ntby_qty         String
+  prsn_seln_tr_pbmn     String
+  prsn_shnu_tr_pbmn     String
+  prsn_ntby_tr_pbmn     String
+  orgn_seln_vol         String
+  orgn_shnu_vol         String
+  orgn_ntby_qty         String
+  orgn_seln_tr_pbmn     String
+  orgn_shnu_tr_pbmn     String
+  orgn_ntby_tr_pbmn     String
+  scrt_seln_vol         String
+  scrt_shnu_vol         String
+  scrt_ntby_qty         String
+  scrt_seln_tr_pbmn     String
+  scrt_shnu_tr_pbmn     String
+  scrt_ntby_tr_pbmn     String
+  ivtr_seln_vol         String
+  ivtr_shnu_vol         String
+  ivtr_ntby_qty         String
+  ivtr_seln_tr_pbmn     String
+  ivtr_shnu_tr_pbmn     String
+  ivtr_ntby_tr_pbmn     String
+  pe_fund_seln_tr_pbmn  String
+  pe_fund_seln_vol      String
+  pe_fund_ntby_vol      String
+  pe_fund_shnu_tr_pbmn  String
+  pe_fund_shnu_vol      String
+  pe_fund_ntby_tr_pbmn  String
+  bank_seln_vol         String
+  bank_shnu_vol         String
+  bank_ntby_qty         String
+  bank_seln_tr_pbmn     String
+  bank_shnu_tr_pbmn     String
+  bank_ntby_tr_pbmn     String
+  insu_seln_vol         String
+  insu_shnu_vol         String
+  insu_ntby_qty         String
+  insu_seln_tr_pbmn     String
+  insu_shnu_tr_pbmn     String
+  insu_ntby_tr_pbmn     String
+  mrbn_seln_vol         String
+  mrbn_shnu_vol         String
+  mrbn_ntby_qty         String
+  mrbn_seln_tr_pbmn     String
+  mrbn_shnu_tr_pbmn     String
+  mrbn_ntby_tr_pbmn     String
+  fund_seln_vol         String
+  fund_shnu_vol         String
+  fund_ntby_qty         String
+  fund_seln_tr_pbmn     String
+  fund_shnu_tr_pbmn     String
+  fund_ntby_tr_pbmn     String
+  etc_orgt_seln_vol     String
+  etc_orgt_shnu_vol     String
+  etc_orgt_ntby_vol     String
   etc_orgt_seln_tr_pbmn String
   etc_orgt_shnu_tr_pbmn String
   etc_orgt_ntby_tr_pbmn String
-  etc_corp_seln_vol String
-  etc_corp_shnu_vol String
-  etc_corp_ntby_vol String
+  etc_corp_seln_vol     String
+  etc_corp_shnu_vol     String
+  etc_corp_ntby_vol     String
   etc_corp_seln_tr_pbmn String
   etc_corp_shnu_tr_pbmn String
   etc_corp_ntby_tr_pbmn String
-  // --- End InvestorTradingData fields ---
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
   @@map("trading_investor_trading")
 }
 
-// 옵션 데이터 (Put/Call 비율)
 model OptionData {
   id           Int      @id @default(autoincrement())
   date         DateTime @unique @db.Date
-  putVolume    BigInt   // Put 옵션 거래량
-  callVolume   BigInt   // Call 옵션 거래량
-  putCallRatio Decimal  @db.Decimal(8, 4) // Put/Call 비율
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  putVolume    BigInt
+  callVolume   BigInt
+  putCallRatio Decimal  @db.Decimal(8, 4)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@map("trading_option_data")
 }
 
-// 금리 데이터 (BOK Collector)
 model InterestRateData {
   id              Int      @id @default(autoincrement())
   date            DateTime @unique @db.Date
-  baseRate        Decimal  @db.Decimal(5, 2) // 기준금리
-  callRate        Decimal  @db.Decimal(5, 2) // 콜금리
-  cd91Rate        Decimal  @db.Decimal(5, 2) // CD 91일
-  treasuryBond3Y  Decimal  @db.Decimal(5, 2) // 국고채 3년
-  treasuryBond10Y Decimal  @db.Decimal(5, 2) // 국고채 10년
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  baseRate        Decimal  @db.Decimal(5, 2)
+  callRate        Decimal  @db.Decimal(5, 2)
+  cd91Rate        Decimal  @db.Decimal(5, 2)
+  treasuryBond3Y  Decimal  @db.Decimal(5, 2)
+  treasuryBond10Y Decimal  @db.Decimal(5, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   @@map("macro_interest_rate_data")
 }
 
-// 환율 데이터 (BOK Collector)
 model ExchangeRateData {
-  id      Int      @id @default(autoincrement())
-  date    DateTime @unique @db.Date
-  usdKrw  Decimal  @db.Decimal(8, 2) // USD/KRW
-  eurKrw  Decimal  @db.Decimal(8, 2) // EUR/KRW
-  jpyKrw  Decimal  @db.Decimal(8, 4) // JPY/KRW (100엔당)
-  cnyKrw  Decimal  @db.Decimal(8, 4) // CNY/KRW
-  
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique @db.Date
+  usdKrw    Decimal  @db.Decimal(8, 2)
+  eurKrw    Decimal  @db.Decimal(8, 2)
+  jpyKrw    Decimal  @db.Decimal(8, 4)
+  cnyKrw    Decimal  @db.Decimal(8, 4)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("macro_exchange_rate_data")
 }
 
-// 경제지표 데이터 (BOK Collector)
 model EconomicIndicatorData {
   id               Int      @id @default(autoincrement())
   date             DateTime @unique @db.Date
-  cpi              Decimal? @db.Decimal(5, 2) // 소비자물가지수
-  ppi              Decimal? @db.Decimal(5, 2) // 생산자물가지수
-  unemploymentRate Decimal? @db.Decimal(4, 2) // 실업률
-  gdpGrowthRate    Decimal? @db.Decimal(5, 2) // GDP 성장률
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  cpi              Decimal? @db.Decimal(5, 2)
+  ppi              Decimal? @db.Decimal(5, 2)
+  unemploymentRate Decimal? @db.Decimal(4, 2)
+  gdpGrowthRate    Decimal? @db.Decimal(5, 2)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
   @@map("macro_economic_indicator_data")
 }
 
-// VKOSPI 변동성 지수
 model VkospiData {
-  id    Int      @id @default(autoincrement())
-  date  DateTime @unique @db.Date
-  value Decimal  @db.Decimal(5, 2) // VKOSPI 값
-  
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique @db.Date
+  value     Decimal  @db.Decimal(5, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("market_vkospi_data")
 }
 
-// 국채 수익률 커브 데이터
 model BondYieldCurveData {
-  id       Int      @id @default(autoincrement())
-  date     DateTime @unique @db.Date
-  yield1Y  Decimal? @db.Decimal(5, 2) // 1년 국고채
-  yield3Y  Decimal? @db.Decimal(5, 2) // 3년 국고채
-  yield5Y  Decimal? @db.Decimal(5, 2) // 5년 국고채
-  yield10Y Decimal? @db.Decimal(5, 2) // 10년 국고채
-  yield20Y Decimal? @db.Decimal(5, 2) // 20년 국고채
-  
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique @db.Date
+  yield1Y   Decimal? @db.Decimal(5, 2)
+  yield3Y   Decimal? @db.Decimal(5, 2)
+  yield5Y   Decimal? @db.Decimal(5, 2)
+  yield10Y  Decimal? @db.Decimal(5, 2)
+  yield20Y  Decimal? @db.Decimal(5, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("market_bond_yield_curve_data")
 }
 
-// 데이터 수집 로그
 model DataCollectionLog {
   id           Int      @id @default(autoincrement())
   date         DateTime @db.Date
-  source       String   // "KRX", "BOK"
-  dataType     String   // "KOSPI", "TRADING", "OPTIONS", "INTEREST_RATES", "EXCHANGE_RATES", "ECONOMIC_INDICATORS"
-  status       String   // "SUCCESS", "FAILED", "PARTIAL"
-  recordCount  Int?     // 수집된 레코드 수
+  source       String
+  dataType     String
+  status       String
+  recordCount  Int?
   errorMessage String?  @db.Text
-  duration     Int?     // 수집 소요 시간 (ms)
-  
-  createdAt DateTime @default(now())
-  
+  duration     Int?
+  createdAt    DateTime @default(now())
+
   @@map("system_data_collection_log")
 }
 
-// 시스템 설정
 model SystemConfig {
-  id    Int    @id @default(autoincrement())
-  key   String @unique
-  value String @db.Text
-  
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("system_config")
 }
 
@@ -422,6 +393,7 @@ model UpbitIndexData {
   value     Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   @@map("external_upbit_index_data")
 }
 
@@ -431,6 +403,7 @@ model CnnFearGreedIndexData {
   value     Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   @@map("external_cnn_fg_index_data")
 }
 
@@ -440,117 +413,96 @@ model KoreaFGIndexData {
   value     Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   @@map("external_korea_fg_index_data")
 }
 
-// ==================== AUTHENTICATION MODELS ====================
-
-// 관리자 사용자
 model AdminUser {
-  id                String   @id @default(cuid())
-  username          String   @unique
-  email             String?  @unique
-  passwordHash      String
-  role              AdminRole
-  permissions       String   @db.Text // JSON array of permissions
-  
-  // Security fields
-  isActive          Boolean  @default(true)
-  isLocked          Boolean  @default(false)
-  lockReason        String?
-  lockedAt          DateTime?
-  lockedUntil       DateTime?
-  failedAttempts    Int      @default(0)
-  lastFailedAt      DateTime?
-  
-  // Password policy
-  passwordChangedAt DateTime @default(now())
-  mustChangePassword Boolean @default(false)
-  
-  // MFA fields
-  mfaEnabled        Boolean  @default(false)
-  mfaSecret         String?
-  mfaBackupCodes    String   @db.Text // JSON array of encrypted backup codes
-  
-  // Metadata
-  firstName         String?
-  lastName          String?
-  lastLoginAt       DateTime?
-  lastLoginIp       String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  // Relations
-  sessions          AdminSession[]
-  refreshTokens     AdminRefreshToken[]
-  auditLogs         AdminAuditLog[]
-  loginAttempts     AdminLoginAttempt[]
+  id                        String                     @id @default(cuid())
+  username                  String                     @unique
+  email                     String?                    @unique
+  passwordHash              String
+  role                      AdminRole
+  permissions               String                     @db.Text
+  isActive                  Boolean                    @default(true)
+  isLocked                  Boolean                    @default(false)
+  lockReason                String?
+  lockedAt                  DateTime?
+  lockedUntil               DateTime?
+  failedAttempts            Int                        @default(0)
+  lastFailedAt              DateTime?
+  passwordChangedAt         DateTime                   @default(now())
+  mustChangePassword        Boolean                    @default(false)
+  mfaEnabled                Boolean                    @default(false)
+  mfaSecret                 String?
+  mfaBackupCodes            String                     @db.Text
+  firstName                 String?
+  lastName                  String?
+  lastLoginAt               DateTime?
+  lastLoginIp               String?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  auditLogs                 AdminAuditLog[]
+  loginAttempts             AdminLoginAttempt[]
+  refreshTokens             AdminRefreshToken[]
+  sessions                  AdminSession[]
+  dataExportRequests        DataExportRequest[]
   notificationSubscriptions NotificationSubscription[]
-  createdReports    ReportDefinition[] @relation("ReportCreator")
-  executedReports   ReportExecution[] @relation("ReportExecutor")
-  dataExportRequests DataExportRequest[]
-  acknowledgedInsights SystemInsight[]
-  webSocketConnections WebSocketConnection[]
-  
+  createdReports            ReportDefinition[]         @relation("ReportCreator")
+  executedReports           ReportExecution[]          @relation("ReportExecutor")
+  acknowledgedInsights      SystemInsight[]
+  webSocketConnections      WebSocketConnection[]
+
   @@map("admin_users")
 }
 
-// 관리자 세션 관리
 model AdminSession {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  sessionId   String   @unique
-  accessToken String   @unique
+  sessionId   String    @unique
+  accessToken String    @unique
   ipAddress   String
   userAgent   String?
-  isActive    Boolean  @default(true)
-  lastUsedAt  DateTime @default(now())
+  isActive    Boolean   @default(true)
+  lastUsedAt  DateTime  @default(now())
   expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  
-  // Relations
+  createdAt   DateTime  @default(now())
   user        AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([sessionId])
   @@index([accessToken])
   @@map("admin_sessions")
 }
 
-// 리프레시 토큰 관리
 model AdminRefreshToken {
-  id         String   @id @default(cuid())
-  userId     String
-  token      String   @unique
-  sessionId  String
-  isRevoked  Boolean  @default(false)
-  revokedAt  DateTime?
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  
-  // Relations
-  user       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  sessionId String
+  isRevoked Boolean   @default(false)
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([token])
   @@index([sessionId])
   @@map("admin_refresh_tokens")
 }
 
-// 로그인 시도 추적
 model AdminLoginAttempt {
-  id         String   @id @default(cuid())
-  userId     String?  // null for failed attempts with unknown user
-  username   String
-  ipAddress  String
-  userAgent  String?
-  success    Boolean
-  failReason String?  // "INVALID_CREDENTIALS", "ACCOUNT_LOCKED", "MFA_REQUIRED", etc.
-  attemptedAt DateTime @default(now())
-  
-  // Relations
-  user       AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+  id          String     @id @default(cuid())
+  userId      String?
+  username    String
+  ipAddress   String
+  userAgent   String?
+  success     Boolean
+  failReason  String?
+  attemptedAt DateTime   @default(now())
+  user        AdminUser? @relation(fields: [userId], references: [id])
+
   @@index([userId])
   @@index([username])
   @@index([ipAddress])
@@ -558,23 +510,20 @@ model AdminLoginAttempt {
   @@map("admin_login_attempts")
 }
 
-// 보안 감사 로그
 model AdminAuditLog {
-  id          String    @id @default(cuid())
-  userId      String?
-  sessionId   String?
-  action      String    // "LOGIN", "LOGOUT", "PASSWORD_CHANGE", "PERMISSION_CHANGE", etc.
-  resource    String?   // What was accessed/modified
-  details     String?   @db.Text // JSON details
-  ipAddress   String
-  userAgent   String?
-  success     Boolean
-  riskLevel   AuditRiskLevel @default(LOW)
-  timestamp   DateTime  @default(now())
-  
-  // Relations
-  user        AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+  id        String         @id @default(cuid())
+  userId    String?
+  sessionId String?
+  action    String
+  resource  String?
+  details   String?        @db.Text
+  ipAddress String
+  userAgent String?
+  success   Boolean
+  riskLevel AuditRiskLevel @default(LOW)
+  timestamp DateTime       @default(now())
+  user      AdminUser?     @relation(fields: [userId], references: [id])
+
   @@index([userId])
   @@index([action])
   @@index([timestamp])
@@ -582,36 +531,441 @@ model AdminAuditLog {
   @@map("admin_audit_logs")
 }
 
-// 보안 설정
 model SecurityConfig {
-  id                    String   @id @default(cuid())
-  key                   String   @unique
-  value                 String   @db.Text
-  description           String?
-  isActive              Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@map("security_config")
 }
 
-// Rate limiting 추적
 model RateLimitRecord {
-  id         String   @id @default(cuid())
-  identifier String   // IP address or user ID
-  action     String   // "LOGIN", "API_CALL", etc.
-  attempts   Int      @default(1)
+  id          String   @id @default(cuid())
+  identifier  String
+  action      String
+  attempts    Int      @default(1)
   windowStart DateTime
-  windowEnd  DateTime
-  isBlocked  Boolean  @default(false)
-  
+  windowEnd   DateTime
+  isBlocked   Boolean  @default(false)
+
   @@unique([identifier, action, windowStart])
   @@index([identifier, action])
   @@index([windowStart, windowEnd])
   @@map("rate_limit_records")
 }
 
-// Enums
+model NotificationChannel {
+  id            String                     @id @default(cuid())
+  name          String                     @unique
+  type          NotificationChannelType
+  enabled       Boolean                    @default(true)
+  config        String                     @db.Text
+  maxPerHour    Int                        @default(100)
+  maxPerDay     Int                        @default(1000)
+  description   String?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  notifications NotificationLog[]
+  subscriptions NotificationSubscription[]
+  templates     NotificationTemplate[]
+
+  @@map("notification_channels")
+}
+
+model NotificationSubscription {
+  id              String              @id @default(cuid())
+  userId          String?
+  channelId       String
+  eventType       String
+  enabled         Boolean             @default(true)
+  filters         String?             @db.Text
+  immediateNotify Boolean             @default(true)
+  digestSettings  String?             @db.Text
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  channel         NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user            AdminUser?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId, eventType])
+  @@index([userId])
+  @@index([channelId])
+  @@index([eventType])
+  @@map("notification_subscriptions")
+}
+
+model NotificationTemplate {
+  id            String              @id @default(cuid())
+  name          String              @unique
+  channelId     String
+  eventType     String
+  subject       String?
+  body          String              @db.Text
+  htmlBody      String?             @db.Text
+  variables     String              @db.Text
+  description   String?
+  isDefault     Boolean             @default(false)
+  isActive      Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  notifications NotificationLog[]
+  channel       NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([eventType])
+  @@map("notification_templates")
+}
+
+model NotificationLog {
+  id           String                @id @default(cuid())
+  channelId    String
+  templateId   String?
+  recipient    String
+  eventType    String
+  eventId      String?
+  subject      String?
+  body         String                @db.Text
+  metadata     String?               @db.Text
+  status       NotificationStatus    @default(PENDING)
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  failedAt     DateTime?
+  errorMessage String?               @db.Text
+  retryCount   Int                   @default(0)
+  maxRetries   Int                   @default(3)
+  nextRetryAt  DateTime?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  channel      NotificationChannel   @relation(fields: [channelId], references: [id])
+  template     NotificationTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([channelId])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@index([templateId], map: "notification_logs_templateId_fkey")
+  @@map("notification_logs")
+}
+
+model ReportDefinition {
+  id               String            @id @default(cuid())
+  name             String            @unique
+  description      String?
+  category         ReportCategory
+  dataSource       String
+  parameters       String            @db.Text
+  template         String            @db.Text
+  supportedFormats String            @db.Text
+  defaultFormat    String            @default("PDF")
+  isScheduled      Boolean           @default(false)
+  cronExpression   String?
+  timezone         String            @default("Asia/Seoul")
+  requiredRole     AdminRole         @default(VIEWER)
+  isPublic         Boolean           @default(false)
+  isActive         Boolean           @default(true)
+  createdBy        String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  creator          AdminUser?        @relation("ReportCreator", fields: [createdBy], references: [id])
+  executions       ReportExecution[]
+  schedules        ReportSchedule[]
+
+  @@index([category])
+  @@index([isScheduled])
+  @@index([createdBy])
+  @@map("report_definitions")
+}
+
+model ReportExecution {
+  id            String                @id @default(cuid())
+  reportId      String
+  executedBy    String?
+  parameters    String?               @db.Text
+  format        String
+  status        ReportExecutionStatus @default(PENDING)
+  startedAt     DateTime              @default(now())
+  completedAt   DateTime?
+  failedAt      DateTime?
+  errorMessage  String?               @db.Text
+  fileName      String?
+  filePath      String?
+  fileSize      Int?
+  rowCount      Int?
+  executionTime Int?
+  metadata      String?               @db.Text
+  executor      AdminUser?            @relation("ReportExecutor", fields: [executedBy], references: [id])
+  report        ReportDefinition      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([executedBy])
+  @@index([status])
+  @@index([startedAt])
+  @@map("report_executions")
+}
+
+model ReportSchedule {
+  id                  String           @id @default(cuid())
+  reportId            String
+  name                String
+  cronExpression      String
+  timezone            String           @default("Asia/Seoul")
+  parameters          String?          @db.Text
+  format              String           @default("PDF")
+  notifyOnSuccess     Boolean          @default(true)
+  notifyOnFailure     Boolean          @default(true)
+  recipients          String           @db.Text
+  isActive            Boolean          @default(true)
+  lastRunAt           DateTime?
+  nextRunAt           DateTime?
+  consecutiveFailures Int              @default(0)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  report              ReportDefinition @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([isActive])
+  @@index([nextRunAt])
+  @@map("report_schedules")
+}
+
+model DataExportRequest {
+  id            String       @id @default(cuid())
+  requestedBy   String
+  dataType      String
+  format        String
+  dateRange     String       @db.Text
+  filters       String?      @db.Text
+  status        ExportStatus @default(PENDING)
+  startedAt     DateTime     @default(now())
+  completedAt   DateTime?
+  failedAt      DateTime?
+  errorMessage  String?      @db.Text
+  fileName      String?
+  filePath      String?
+  fileSize      Int?
+  recordCount   Int?
+  downloadCount Int          @default(0)
+  expiresAt     DateTime?
+  requester     AdminUser    @relation(fields: [requestedBy], references: [id], onDelete: Cascade)
+
+  @@index([requestedBy])
+  @@index([status])
+  @@index([startedAt])
+  @@map("data_export_requests")
+}
+
+model SystemInsight {
+  id              String          @id @default(cuid())
+  type            InsightType
+  category        String
+  title           String
+  description     String          @db.Text
+  severity        InsightSeverity
+  confidence      Int
+  dataSource      String
+  analysisDate    DateTime
+  affectedPeriod  String?         @db.Text
+  metrics         String          @db.Text
+  recommendations String          @db.Text
+  actionItems     String          @db.Text
+  status          InsightStatus   @default(NEW)
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  acknowledger    AdminUser?      @relation(fields: [acknowledgedBy], references: [id])
+
+  @@index([type])
+  @@index([category])
+  @@index([severity])
+  @@index([status])
+  @@index([analysisDate])
+  @@index([acknowledgedBy], map: "system_insights_acknowledgedBy_fkey")
+  @@map("system_insights")
+}
+
+model WebSocketConnection {
+  id             String     @id @default(cuid())
+  sessionId      String     @unique
+  userId         String?
+  socketId       String     @unique
+  ipAddress      String
+  userAgent      String?
+  isActive       Boolean    @default(true)
+  connectedAt    DateTime   @default(now())
+  lastPingAt     DateTime   @default(now())
+  disconnectedAt DateTime?
+  subscriptions  String     @db.Text
+  user           AdminUser? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([connectedAt])
+  @@map("websocket_connections")
+}
+
+model DartDisclosure {
+  id              Int      @id @default(autoincrement())
+  receiptNumber   String   @unique
+  corpCode        String
+  corpName        String
+  stockCode       String?
+  reportName      String   @db.Text
+  flrName         String
+  receiptDate     DateTime @db.Date
+  disclosureDate  DateTime @db.Date
+  reportCode      String
+  remarks         String?  @db.Text
+  sentimentImpact String?
+  impactScore     Int?
+  keywords        String?  @db.Text
+  category        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([corpCode])
+  @@index([receiptDate])
+  @@index([reportCode])
+  @@index([sentimentImpact])
+  @@map("dart_disclosures")
+}
+
+model DartCompany {
+  id           Int      @id @default(autoincrement())
+  corpCode     String   @unique
+  corpName     String
+  corpNameEng  String?
+  stockName    String?
+  stockCode    String?
+  ceoName      String?
+  corpCls      String?
+  jurirNo      String?
+  bizrNo       String?
+  adres        String?  @db.Text
+  homUrl       String?
+  irUrl        String?
+  phnNo        String?
+  faxNo        String?
+  indutyCode   String?
+  estDate      String?
+  accMt        String?
+  isKospi200   Boolean  @default(false)
+  kospi200Rank Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([stockCode])
+  @@index([corpCls])
+  @@index([isKospi200])
+  @@map("dart_companies")
+}
+
+model DartFinancial {
+  id              Int      @id @default(autoincrement())
+  corpCode        String
+  businessYear    String
+  reportCode      String
+  reprtNm         String?
+  acntNm          String
+  thstrmNm        String?
+  thstrmAmount    String?
+  frmtrmNm        String?
+  frmtrmAmount    String?
+  bfefrmtrmNm     String?
+  bfefrmtrmAmount String?
+  ord             String?
+  currency        String?
+  fsCls           String?
+  sjNm            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([corpCode, businessYear, reportCode, acntNm])
+  @@index([corpCode])
+  @@index([businessYear])
+  @@map("dart_financials")
+}
+
+model DartBatchLog {
+  id             String    @id @default(cuid())
+  jobId          String    @unique
+  jobType        String
+  status         String
+  startTime      DateTime  @default(now())
+  endTime        DateTime?
+  processedCount Int       @default(0)
+  successCount   Int       @default(0)
+  failedCount    Int       @default(0)
+  errors         String?   @db.Text
+  parameters     String?   @db.Text
+  resultSummary  String?   @db.Text
+
+  @@index([jobType])
+  @@index([status])
+  @@index([startTime])
+  @@map("dart_batch_logs")
+}
+
+model DartCollectionStat {
+  id                  Int      @id @default(autoincrement())
+  date                DateTime @unique @db.Date
+  totalApiCalls       Int      @default(0)
+  successfulCalls     Int      @default(0)
+  failedCalls         Int      @default(0)
+  dataPoints          Int      @default(0)
+  averageResponseTime Int      @default(0)
+  rateLimitRemaining  Int      @default(10000)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("dart_collection_stats")
+}
+
+model DartStockHolding {
+  id                 Int      @id @default(autoincrement())
+  corpCode           String   // 기업 고유번호
+  corpName           String   // 기업명
+  stockCode          String?  // 주식코드
+  reportDate         DateTime @db.Date // 보고일자
+  reporterName       String   // 보고자명
+  holdingRatio       Decimal  @db.Decimal(5, 2) // 보유비율 (%)
+  holdingShares      BigInt   // 보유주식수
+  changeRatio        Decimal  @db.Decimal(5, 2) // 변동비율 (%)
+  changeShares       BigInt   // 변동주식수
+  changeReason       String   // 변동사유
+  
+  // Executive holdings fields
+  isu_main_shrholdr  String?  // 주요주주 여부
+  isu_exctv_rgist_at String?  // 발행회사 임원 등기여부 (Y/N)
+  isu_exctv_ofcps    String?  // 발행회사 임원 직책
+  
+  createdAt          DateTime @default(now())
+
+  @@index([corpCode])
+  @@index([reportDate])
+  @@map("dart_stock_holdings")
+}
+
+model DartAlert {
+  id             String   @id @default(cuid())
+  name           String
+  corpCodes      String   @db.Text
+  keywords       String   @db.Text
+  reportTypes    String   @db.Text
+  minImpactScore Int      @default(0)
+  channels       String   @db.Text
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("dart_alerts")
+}
+
 enum AdminRole {
   SUPER_ADMIN
   ADMIN
@@ -626,356 +980,6 @@ enum AuditRiskLevel {
   CRITICAL
 }
 
-// ==================== NOTIFICATION & REPORTING MODELS ====================
-
-// 알림 채널 설정
-model NotificationChannel {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  type        NotificationChannelType
-  enabled     Boolean  @default(true)
-  
-  // Channel configuration (JSON)
-  config      String   @db.Text // JSON configuration for each channel type
-  
-  // Rate limiting
-  maxPerHour  Int      @default(100)
-  maxPerDay   Int      @default(1000)
-  
-  // Metadata
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  notifications NotificationLog[]
-  subscriptions NotificationSubscription[]
-  templates     NotificationTemplate[]
-  
-  @@map("notification_channels")
-}
-
-// 알림 구독 설정
-model NotificationSubscription {
-  id          String   @id @default(cuid())
-  userId      String?  // null for system-wide subscriptions
-  channelId   String
-  eventType   String   // "ALERT", "REPORT", "SYSTEM_STATUS", "DATA_COLLECTION", etc.
-  enabled     Boolean  @default(true)
-  
-  // Filtering criteria (JSON)
-  filters     String?  @db.Text // JSON filters for events
-  
-  // Schedule settings
-  immediateNotify Boolean @default(true)
-  digestSettings  String? @db.Text // JSON for digest settings
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  channel     NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user        AdminUser? @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, channelId, eventType])
-  @@index([userId])
-  @@index([channelId])
-  @@index([eventType])
-  @@map("notification_subscriptions")
-}
-
-// 알림 템플릿
-model NotificationTemplate {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  channelId   String
-  eventType   String
-  
-  // Template content
-  subject     String?
-  body        String   @db.Text
-  htmlBody    String?  @db.Text
-  
-  // Template variables (JSON array)
-  variables   String   @db.Text // JSON array of variable names
-  
-  // Metadata
-  description String?
-  isDefault   Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  channel     NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  notifications NotificationLog[]
-  
-  @@index([channelId])
-  @@index([eventType])
-  @@map("notification_templates")
-}
-
-// 알림 전송 로그
-model NotificationLog {
-  id            String   @id @default(cuid())
-  channelId     String
-  templateId    String?
-  recipient     String   // Email, phone, Slack channel, etc.
-  eventType     String
-  eventId       String?  // Reference to the event that triggered the notification
-  
-  // Message content
-  subject       String?
-  body          String   @db.Text
-  metadata      String?  @db.Text // JSON metadata
-  
-  // Delivery status
-  status        NotificationStatus @default(PENDING)
-  sentAt        DateTime?
-  deliveredAt   DateTime?
-  failedAt      DateTime?
-  errorMessage  String?  @db.Text
-  retryCount    Int      @default(0)
-  maxRetries    Int      @default(3)
-  nextRetryAt   DateTime?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  channel       NotificationChannel @relation(fields: [channelId], references: [id])
-  template      NotificationTemplate? @relation(fields: [templateId], references: [id])
-  
-  @@index([channelId])
-  @@index([eventType])
-  @@index([status])
-  @@index([createdAt])
-  @@map("notification_logs")
-}
-
-// 보고서 정의
-model ReportDefinition {
-  id            String   @id @default(cuid())
-  name          String   @unique
-  description   String?
-  category      ReportCategory
-  
-  // Report configuration
-  dataSource    String   // JSON configuration for data sources
-  parameters    String   @db.Text // JSON parameters schema
-  template      String   @db.Text // Report template (JSON or SQL)
-  
-  // Format settings
-  supportedFormats String   @db.Text // JSON array ["PDF", "CSV", "EXCEL", "JSON"]
-  defaultFormat    String   @default("PDF")
-  
-  // Schedule settings
-  isScheduled      Boolean  @default(false)
-  cronExpression   String?
-  timezone         String   @default("Asia/Seoul")
-  
-  // Access control
-  requiredRole     AdminRole @default(VIEWER)
-  isPublic         Boolean   @default(false)
-  
-  // Metadata
-  isActive         Boolean   @default(true)
-  createdBy        String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  
-  // Relations
-  creator          AdminUser? @relation("ReportCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  executions       ReportExecution[]
-  schedules        ReportSchedule[]
-  
-  @@index([category])
-  @@index([isScheduled])
-  @@index([createdBy])
-  @@map("report_definitions")
-}
-
-// 보고서 실행 기록
-model ReportExecution {
-  id             String   @id @default(cuid())
-  reportId       String
-  executedBy     String?
-  
-  // Execution parameters
-  parameters     String?  @db.Text // JSON parameters used
-  format         String
-  
-  // Execution status
-  status         ReportExecutionStatus @default(PENDING)
-  startedAt      DateTime @default(now())
-  completedAt    DateTime?
-  failedAt       DateTime?
-  errorMessage   String?  @db.Text
-  
-  // Output information
-  fileName       String?
-  filePath       String?
-  fileSize       Int?     // in bytes
-  rowCount       Int?     // number of rows/records
-  
-  // Metadata
-  executionTime  Int?     // in milliseconds
-  metadata       String?  @db.Text // JSON metadata
-  
-  // Relations
-  report         ReportDefinition @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  executor       AdminUser? @relation("ReportExecutor", fields: [executedBy], references: [id], onDelete: SetNull)
-  
-  @@index([reportId])
-  @@index([executedBy])
-  @@index([status])
-  @@index([startedAt])
-  @@map("report_executions")
-}
-
-// 예약된 보고서 작업
-model ReportSchedule {
-  id              String   @id @default(cuid())
-  reportId        String
-  name            String
-  
-  // Schedule configuration
-  cronExpression  String
-  timezone        String   @default("Asia/Seoul")
-  parameters      String?  @db.Text // JSON default parameters
-  format          String   @default("PDF")
-  
-  // Notification settings
-  notifyOnSuccess Boolean  @default(true)
-  notifyOnFailure Boolean  @default(true)
-  recipients      String   @db.Text // JSON array of email addresses or user IDs
-  
-  // Status
-  isActive        Boolean  @default(true)
-  lastRunAt       DateTime?
-  nextRunAt       DateTime?
-  consecutiveFailures Int  @default(0)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  report          ReportDefinition @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  
-  @@index([reportId])
-  @@index([isActive])
-  @@index([nextRunAt])
-  @@map("report_schedules")
-}
-
-// 데이터 내보내기 요청
-model DataExportRequest {
-  id             String   @id @default(cuid())
-  requestedBy    String
-  
-  // Export configuration
-  dataType       String   // "FEAR_GREED_INDEX", "MARKET_DATA", "ALERTS", etc.
-  format         String   // "CSV", "EXCEL", "JSON", "PDF"
-  dateRange      String   @db.Text // JSON date range
-  filters        String?  @db.Text // JSON filters
-  
-  // Status
-  status         ExportStatus @default(PENDING)
-  startedAt      DateTime @default(now())
-  completedAt    DateTime?
-  failedAt       DateTime?
-  errorMessage   String?  @db.Text
-  
-  // Output
-  fileName       String?
-  filePath       String?
-  fileSize       Int?     // in bytes
-  recordCount    Int?
-  downloadCount  Int      @default(0)
-  expiresAt      DateTime? // When the file expires
-  
-  // Relations
-  requester      AdminUser @relation(fields: [requestedBy], references: [id], onDelete: Cascade)
-  
-  @@index([requestedBy])
-  @@index([status])
-  @@index([startedAt])
-  @@map("data_export_requests")
-}
-
-// 시스템 인사이트 및 추천
-model SystemInsight {
-  id            String   @id @default(cuid())
-  type          InsightType
-  category      String   // "PERFORMANCE", "SECURITY", "DATA_QUALITY", "BUSINESS"
-  
-  // Insight content
-  title         String
-  description   String   @db.Text
-  severity      InsightSeverity
-  confidence    Int      // 0-100 confidence score
-  
-  // Data and analysis
-  dataSource    String   // What data was analyzed
-  analysisDate  DateTime
-  affectedPeriod String? @db.Text // JSON time period analyzed
-  metrics       String   @db.Text // JSON metrics and values
-  
-  // Recommendations
-  recommendations String @db.Text // JSON array of recommendations
-  actionItems     String @db.Text // JSON array of action items
-  
-  // Status
-  status        InsightStatus @default(NEW)
-  acknowledgedBy String?
-  acknowledgedAt DateTime?
-  resolvedAt    DateTime?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  acknowledger  AdminUser? @relation(fields: [acknowledgedBy], references: [id], onDelete: SetNull)
-  
-  @@index([type])
-  @@index([category])
-  @@index([severity])
-  @@index([status])
-  @@index([analysisDate])
-  @@map("system_insights")
-}
-
-// WebSocket 연결 추적
-model WebSocketConnection {
-  id            String   @id @default(cuid())
-  sessionId     String   @unique
-  userId        String?
-  socketId      String   @unique
-  
-  // Connection info
-  ipAddress     String
-  userAgent     String?
-  
-  // Status
-  isActive      Boolean  @default(true)
-  connectedAt   DateTime @default(now())
-  lastPingAt    DateTime @default(now())
-  disconnectedAt DateTime?
-  
-  // Metadata
-  subscriptions String   @db.Text // JSON array of subscribed channels
-  
-  // Relations
-  user          AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  @@index([userId])
-  @@index([isActive])
-  @@index([connectedAt])
-  @@map("websocket_connections")
-}
-
-// Enums for notification and reporting
 enum NotificationChannelType {
   EMAIL
   SLACK
@@ -1041,179 +1045,4 @@ enum InsightStatus {
   IN_PROGRESS
   RESOLVED
   DISMISSED
-}
-
-// ==================== DART DISCLOSURE MODELS ====================
-
-// DART 공시정보 데이터
-model DartDisclosure {
-  id              Int      @id @default(autoincrement())
-  receiptNumber   String   @unique // 접수번호 (고유키)
-  corpCode        String   // 기업 고유번호
-  corpName        String   // 기업명
-  stockCode       String?  // 주식코드
-  reportName      String   @db.Text // 보고서명
-  flrName         String   // 공시제출인명
-  receiptDate     DateTime @db.Date // 접수일자
-  disclosureDate  DateTime @db.Date // 공시일자
-  reportCode      String   // 보고서 코드 (A=정기공시, B=주요사항보고 등)
-  remarks         String?  @db.Text // 비고
-  
-  // Fear & Greed 지수 관련 필드
-  sentimentImpact String?  // positive, negative, neutral
-  impactScore     Int?     // 영향 점수 (0-100)
-  keywords        String?  @db.Text // JSON 키워드 배열
-  category        String?  // dividend, merger, acquisition, financial, management, other
-  
-  // 메타데이터
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@index([corpCode])
-  @@index([receiptDate])
-  @@index([reportCode])
-  @@index([sentimentImpact])
-  @@map("dart_disclosures")
-}
-
-// DART 기업정보
-model DartCompany {
-  id              Int      @id @default(autoincrement())
-  corpCode        String   @unique // 기업 고유번호
-  corpName        String   // 기업명
-  corpNameEng     String?  // 기업명(영문)
-  stockName       String?  // 종목명
-  stockCode       String?  // 주식코드
-  ceoName         String?  // 대표자명
-  corpCls         String?  // 기업구분 (Y=유가, K=코스닥, N=코넥스, E=기타)
-  jurirNo         String?  // 법인번호
-  bizrNo          String?  // 사업자번호
-  adres           String?  @db.Text // 주소
-  homUrl          String?  // 홈페이지
-  irUrl           String?  // IR홈페이지
-  phnNo           String?  // 전화번호
-  faxNo           String?  // 팩스번호
-  indutyCode      String?  // 업종코드
-  estDate         String?  // 설립일자
-  accMt           String?  // 결산월
-  
-  // KOSPI 200 포함 여부
-  isKospi200      Boolean  @default(false)
-  kospi200Rank    Int?     // KOSPI 200 내 순위
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@index([stockCode])
-  @@index([corpCls])
-  @@index([isKospi200])
-  @@map("dart_companies")
-}
-
-// DART 재무정보
-model DartFinancial {
-  id                  Int      @id @default(autoincrement())
-  corpCode            String   // 기업 고유번호
-  businessYear        String   // 사업연도
-  reportCode          String   // 보고서 코드
-  reprtNm             String?  // 보고서명
-  acntNm              String   // 계정명
-  thstrmNm            String?  // 당기명
-  thstrmAmount        String?  // 당기금액
-  frmtrmNm            String?  // 전기명
-  frmtrmAmount        String?  // 전기금액
-  bfefrmtrmNm         String?  // 전전기명
-  bfefrmtrmAmount     String?  // 전전기금액
-  ord                 String?  // 계정순서
-  currency            String?  // 통화단위
-  fsCls               String?  // 재무제표구분
-  sjNm                String?  // 재무제표명
-  
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  @@unique([corpCode, businessYear, reportCode, acntNm])
-  @@index([corpCode])
-  @@index([businessYear])
-  @@map("dart_financials")
-}
-
-// DART 배치 작업 로그
-model DartBatchLog {
-  id              String   @id @default(cuid())
-  jobId           String   @unique // 작업 ID
-  jobType         String   // disclosure, financial, company_info
-  status          String   // pending, processing, completed, failed
-  startTime       DateTime @default(now())
-  endTime         DateTime?
-  processedCount  Int      @default(0)
-  successCount    Int      @default(0)
-  failedCount     Int      @default(0)
-  errors          String?  @db.Text // JSON 오류 목록
-  
-  // 작업 상세 정보
-  parameters      String?  @db.Text // JSON 파라미터
-  resultSummary   String?  @db.Text // JSON 결과 요약
-  
-  @@index([jobType])
-  @@index([status])
-  @@index([startTime])
-  @@map("dart_batch_logs")
-}
-
-// DART 수집 통계
-model DartCollectionStat {
-  id                  Int      @id @default(autoincrement())
-  date                DateTime @unique @db.Date
-  totalApiCalls       Int      @default(0)
-  successfulCalls     Int      @default(0)
-  failedCalls         Int      @default(0)
-  dataPoints          Int      @default(0)
-  averageResponseTime Int      @default(0) // ms
-  rateLimitRemaining  Int      @default(10000)
-  
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  @@map("dart_collection_stats")
-}
-
-// DART 대량보유 현황
-model DartStockHolding {
-  id              Int      @id @default(autoincrement())
-  corpCode        String   // 기업 고유번호
-  corpName        String   // 기업명
-  stockCode       String?  // 주식코드
-  reportDate      DateTime @db.Date // 보고일자
-  reporterName    String   // 보고자명
-  holdingRatio    Decimal  @db.Decimal(5, 2) // 보유비율 (%)
-  holdingShares   BigInt   // 보유주식수
-  changeRatio     Decimal  @db.Decimal(5, 2) // 변동비율 (%)
-  changeShares    BigInt   // 변동주식수
-  changeReason    String   // 변동사유
-  
-  createdAt       DateTime @default(now())
-  
-  @@unique([corpCode, reportDate, reporterName])
-  @@index([corpCode])
-  @@index([reportDate])
-  @@map("dart_stock_holdings")
-}
-
-// DART 알림 설정
-model DartAlert {
-  id              String   @id @default(cuid())
-  name            String   // 알림 설정명
-  corpCodes       String   @db.Text // JSON 배열 - 모니터링 기업 코드들
-  keywords        String   @db.Text // JSON 배열 - 알림 키워드들
-  reportTypes     String   @db.Text // JSON 배열 - 알림 대상 보고서 유형들
-  minImpactScore  Int      @default(0) // 최소 영향 점수
-  channels        String   @db.Text // JSON 배열 - 알림 채널들
-  isActive        Boolean  @default(true)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@index([isActive])
-  @@map("dart_alerts")
 }

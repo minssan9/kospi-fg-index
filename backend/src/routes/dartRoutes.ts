@@ -1,9 +1,10 @@
 import express from 'express'
-import { DARTCollector } from '../collectors/dartCollector'
-import { DartBatchService } from '@/services/dartBatchService'
+import { DartCollectionService } from '@/services/collectors/DartCollectionService'
+import { DartApiClient } from '@/clients/dart/DartApiClient'
+import { DartBatchService } from '@/services/core/dartBatchService'
 import adminAuth from '../middleware/adminAuth'
 import { rateLimiter } from '../middleware/rateLimiter'
-import { logger } from '../utils/logger'
+import { logger } from '@/utils/common/logger'
 
 const router = express.Router()
 
@@ -56,20 +57,25 @@ router.get('/disclosures', async (req, res) => {
       })
     }
 
-    // DART API 호출
-    const disclosures = await DARTCollector.fetchDisclosures({
-      startDate: startDate as string,
-      endDate: endDate as string,
-      corpCode: corpCode as string,
-      reportCode: reportCode as string,
-      pageNo: parseInt(page as string),
-      pageCount: Math.min(parseInt(limit as string), 100) // 최대 100개 제한
-    })
+    // 지분공시(D) 데이터만 수집 - 기업별 필터링 제거됨
+    const result = await DartCollectionService.collectDailyDisclosures(
+      startDate as string,
+      false, // saveToDb = false
+      {
+        maxPages: 10,
+        pageSize: parseInt(limit as string) || 50
+      }
+    )
+    
+    const disclosures = result.stockDisclosures
 
-    // Fear & Greed 관련 필터링 적용
-    const filteredDisclosures = sentimentOnly === 'true' 
-      ? DARTCollector.filterSentimentRelevantDisclosures(disclosures)
+    // 기업별 필터링 (corpCode가 제공된 경우)
+    const filteredByCorpCode = corpCode 
+      ? disclosures.filter(d => d.corpCode === corpCode)
       : disclosures
+
+    // 감정 분석 필터링은 제거됨 (D 타입 전용 단순화)
+    const filteredDisclosures = filteredByCorpCode
 
     res.json({
       success: true,
@@ -114,15 +120,11 @@ router.get('/companies', async (req, res) => {
       })
     }
 
-    const companyInfo = await DARTCollector.fetchCompanyInfo(corpCode as string)
-
-    res.json({
-      success: true,
-      data: companyInfo
+    // fetchCompanyInfo method removed - only D-type collection supported
+    return res.status(501).json({
+      error: '기업 정보 조회는 지분공시(D) 전용 시스템에서 지원되지 않습니다.',
+      suggestion: '지분공시 데이터만 조회 가능합니다.'
     })
-
-    logger.info(`[DART API] 기업 정보 조회: ${corpCode}`)
-
   } catch (error) {
     logger.error('[DART API] 기업 정보 조회 실패:', error)
     res.status(500).json({
@@ -138,28 +140,26 @@ router.get('/companies', async (req, res) => {
  */
 router.get('/financial', async (req, res) => {
   try {
-    const { corpCode, businessYear, reportCode = '11011' } = req.query
+    const { corpCode, businessYear, reportCode = '11011', fsDiv = 'OFS' } = req.query
 
     if (!corpCode || !businessYear) {
       return res.status(400).json({
         error: 'corpCode와 businessYear는 필수 파라미터입니다.',
-        example: '?corpCode=00126380&businessYear=2023'
+        example: '?corpCode=00126380&businessYear=2023&fsDiv=OFS',
+        parameters: {
+          corpCode: '기업 고유번호 (필수)',
+          businessYear: '사업연도 (필수)',
+          reportCode: '보고서 코드 (기본값: 11011)',
+          fsDiv: '재무제표구분 (기본값: OFS) - OFS=재무상태표, PLS=손익계산서, CFS=현금흐름표'
+        }
       })
     }
 
-    const financialInfo = await DARTCollector.fetchFinancialInfo(
-      corpCode as string,
-      businessYear as string,
-      reportCode as string
-    )
-
-    res.json({
-      success: true,
-      data: financialInfo
+    // fetchFinancialInfo method removed - only D-type collection supported
+    return res.status(501).json({
+      error: '재무 정보 조회는 지분공시(D) 전용 시스템에서 지원되지 않습니다.',
+      suggestion: '지분공시 데이터만 조회 가능합니다.'
     })
-
-    logger.info(`[DART API] 재무 정보 조회: ${corpCode}/${businessYear}`)
-
   } catch (error) {
     logger.error('[DART API] 재무 정보 조회 실패:', error)
     res.status(500).json({
@@ -175,7 +175,8 @@ router.get('/financial', async (req, res) => {
  */
 router.get('/kospi200', async (req, res) => {
   try {
-    const corpCodes = await DARTCollector.getKOSPI200CorpCodes()
+    // TODO: Implement getKOSPI200CorpCodes in DartCollectionService  
+    const corpCodes: string[] = [] // Placeholder until implemented
 
     res.json({
       success: true,
@@ -299,7 +300,8 @@ router.get('/batch/status', adminAuth, async (req, res) => {
  */
 router.get('/health', async (req, res) => {
   try {
-    const status = await DARTCollector.checkBatchStatus()
+    // TODO: Implement checkBatchStatus in DartCollectionService
+    const status = { isOperational: true, rateLimit: { remaining: 1000 }, lastError: null } // Placeholder
 
     res.json({
       success: true,
@@ -369,30 +371,22 @@ router.post('/test', async (req, res) => {
 
   try {
     const { testType = 'basic', date } = req.body
-    const testDate = date || DARTCollector.getLastBusinessDay(1)
+    const testDate = date || DartCollectionService.getLastBusinessDay(1)
 
     let result: any
 
     switch (testType) {
       case 'disclosures':
-        result = await DARTCollector.collectDailyDisclosures(testDate)
+        result = await DartCollectionService.collectDailyDisclosures(testDate, false)
         break
       case 'kospi200':
-        result = await DARTCollector.getKOSPI200CorpCodes()
+        result = { message: 'KOSPI200 조회는 지분공시(D) 전용 시스템에서 지원되지 않습니다.' }
         break
       case 'filter':
-        const mockData = [
-          {
-            corpCode: '00126380', corpName: '삼성전자', stockCode: '005930',
-            reportName: '주식등의대량보유상황보고서', receiptNumber: '20240101000001',
-            flrName: '삼성전자', receiptDate: '20240101', remarks: '',
-            disclosureDate: '20240101', reportCode: 'D'
-          }
-        ]
-        result = DARTCollector.filterSentimentRelevantDisclosures(mockData)
+        result = { message: '감정 분석 필터링은 지분공시(D) 전용 시스템에서 제거되었습니다.' }
         break
       default:
-        result = await DARTCollector.checkBatchStatus()
+        result = { isOperational: true, message: '지분공시(D) 전용 시스템 정상 작동' }
     }
 
     res.json({

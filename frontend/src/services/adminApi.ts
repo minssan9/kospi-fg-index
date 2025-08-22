@@ -43,6 +43,41 @@ export interface AdminUser {
   permissions: string[]
 }
 
+// DART Admin Types
+export interface DartBatchRequest {
+  date: string
+  options?: {
+    sentimentOnly?: boolean
+  }
+}
+
+export interface DartFinancialBatchRequest {
+  businessYear: string
+}
+
+export interface DartBatchResponse {
+  jobId: string
+  message: string
+}
+
+// Fear & Greed Admin Types
+export interface FearGreedCalculationRequest {
+  date: string
+}
+
+export interface FearGreedRangeRequest {
+  startDate: string
+  endDate: string
+}
+
+export interface FearGreedRangeResponse {
+  date: string
+  value: number
+  level: string
+  status: 'success' | 'failed'
+  message?: string
+}
+
 // Admin API 서비스
 export const adminApi = {
   // 인증 관련
@@ -126,6 +161,133 @@ export const adminApi = {
     } catch (error) {
       console.error('Range recalculation failed:', error)
       throw new Error('범위 재계산에 실패했습니다.')
+    }
+  },
+
+  // DART 관리 기능
+  async scheduleDartDailyBatch(request: DartBatchRequest): Promise<DartBatchResponse> {
+    try {
+      const response = await api.post<{ success: boolean; data: DartBatchResponse }>(
+        '/dart/batch/daily',
+        request
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('DART daily batch scheduling failed:', error)
+      throw new Error('DART 일별 배치 예약에 실패했습니다.')
+    }
+  },
+
+  async scheduleDartFinancialBatch(request: DartFinancialBatchRequest): Promise<DartBatchResponse> {
+    try {
+      const response = await api.post<{ success: boolean; data: DartBatchResponse }>(
+        '/dart/batch/financial',
+        request
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('DART financial batch scheduling failed:', error)
+      throw new Error('DART 재무 배치 예약에 실패했습니다.')
+    }
+  },
+
+  async getDartBatchStatus(): Promise<any> {
+    try {
+      const response = await api.get<{ success: boolean; data: any }>(
+        '/dart/batch/status'
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('DART batch status fetch failed:', error)
+      throw new Error('DART 배치 상태 조회에 실패했습니다.')
+    }
+  },
+
+  async getDartHealth(): Promise<any> {
+    try {
+      const response = await api.get<{ success: boolean; data: any }>(
+        '/dart/health'
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('DART health check failed:', error)
+      throw new Error('DART 헬스 체크에 실패했습니다.')
+    }
+  },
+
+  async getDartStats(date?: string): Promise<any> {
+    try {
+      const queryParams = date ? `?date=${date}` : ''
+      const response = await api.get<{ success: boolean; data: any }>(
+        `/dart/stats${queryParams}`
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('DART stats fetch failed:', error)
+      throw new Error('DART 통계 조회에 실패했습니다.')
+    }
+  },
+
+  // Fear & Greed 관리 기능
+  async calculateFearGreedIndex(request: FearGreedCalculationRequest): Promise<CalculateIndexResponse> {
+    try {
+      const response = await api.post<{ success: boolean; data: CalculateIndexResponse }>(
+        '/fear-greed/calculate',
+        request
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('Fear & Greed index calculation failed:', error)
+      throw new Error('Fear & Greed Index 계산에 실패했습니다.')
+    }
+  },
+
+  async recalculateFearGreedRange(request: FearGreedRangeRequest): Promise<FearGreedRangeResponse[]> {
+    try {
+      const response = await api.post<{ success: boolean; data: FearGreedRangeResponse[] }>(
+        '/fear-greed/recalculate-range',
+        request
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('Fear & Greed range recalculation failed:', error)
+      throw new Error('Fear & Greed Index 범위 재계산에 실패했습니다.')
+    }
+  },
+
+  async getFearGreedCurrent(): Promise<any> {
+    try {
+      const response = await api.get<{ success: boolean; data: any }>(
+        '/fear-greed/current'
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('Fear & Greed current index fetch failed:', error)
+      throw new Error('현재 Fear & Greed Index 조회에 실패했습니다.')
+    }
+  },
+
+  async getFearGreedHistory(days: number = 30): Promise<any[]> {
+    try {
+      const response = await api.get<{ success: boolean; data: any[] }>(
+        `/fear-greed/history?days=${days}`
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('Fear & Greed history fetch failed:', error)
+      throw new Error('Fear & Greed Index 히스토리 조회에 실패했습니다.')
+    }
+  },
+
+  async getFearGreedStats(): Promise<any> {
+    try {
+      const response = await api.get<{ success: boolean; data: any }>(
+        '/fear-greed/stats'
+      )
+      return response.data.data
+    } catch (error) {
+      console.error('Fear & Greed stats fetch failed:', error)
+      throw new Error('Fear & Greed Index 통계 조회에 실패했습니다.')
     }
   }
 }

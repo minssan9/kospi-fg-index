@@ -3,12 +3,12 @@
  * 전자공시시스템 데이터 수집을 위한 TypeScript 타입들
  */
 
-// DART 배치 요청 인터페이스
+// DART 배치 요청 인터페이스 (지분공시 D 타입 전용)
 export interface DartBatchRequest {
   startDate: string      // YYYY-MM-DD
   endDate: string        // YYYY-MM-DD
   corpCode?: string      // 기업 고유번호 (8자리)
-  reportCode?: string    // A=정기공시, B=주요사항보고, C=발행공시, D=지분공시 등
+  // reportCode는 'D'로 고정되어 DartApiClient에서 처리됨
   pageNo?: number        // 페이지 번호 (기본값: 1)
   pageCount?: number     // 페이지당 건수 (최대 100)
 }
@@ -67,7 +67,7 @@ export interface DartFinancialInfo {
   sjNm: string              // 재무제표명
 }
 
-// 배치 작업 결과
+// 배치 작업 결과 (지분공시 D 타입 전용)
 export interface DartBatchResult {
   jobId: string                    // 작업 ID
   status: 'pending' | 'running' | 'completed' | 'failed'
@@ -78,10 +78,8 @@ export interface DartBatchResult {
   failedCount: number              // 실패 건수
   errors: string[]                 // 오류 메시지 목록
   resultSummary: {
-    totalDisclosures: number
-    regularReports: number
-    majorEvents: number
-    stockEvents: number
+    totalDisclosures: number       // 총 지분공시 건수 (D 타입만)
+    stockDisclosures: number       // 지분공시 건수 (동일값)
   }
 }
 
@@ -93,7 +91,7 @@ export interface SentimentRelevantDisclosure extends DartDisclosureData {
   category: 'dividend' | 'merger' | 'acquisition' | 'financial' | 'management' | 'other'
 }
 
-// 대량보유 현황
+// 대량보유 현황 (기존)
 export interface DartStockHoldingData {
   corpCode: string        // 기업 고유번호
   corpName: string        // 기업명
@@ -105,6 +103,41 @@ export interface DartStockHoldingData {
   changeRatio: number     // 변동비율 (%)
   changeShares: number    // 변동주식수
   changeReason: string    // 변동사유
+  reportType: string      // 보고서 타입
+  isSignificant: boolean  // 중요한 변동 여부
+  receiptNumber: string   // 접수번호
+  reportTypeCode: string  // 보고서 타입 코드
+  
+  // Executive holdings fields
+  isu_main_shrholdr?: string   // 주요주주 여부
+  isu_exctv_rgist_at?: string  // 발행회사 임원 등기여부 (Y/N)
+  isu_exctv_ofcps?: string     // 발행회사 임원 직책
+}
+
+// 대량보유 현황 API 응답 (majorstock 엔드포인트)
+export interface DartMajorStockResponse {
+  status: string
+  message: string
+  list?: DartMajorStockItem[]
+}
+
+// 대량보유 개별 항목
+export interface DartMajorStockItem {
+  rcept_no: string        // 접수번호
+  rcept_dt: string        // 접수일자
+  corp_cls: string        // 법인구분
+  corp_code: string       // 고유번호
+  corp_name: string       // 회사명
+  report_tp: string       // 보고구분
+  report_resn: string     // 보고사유
+  stkqy: string          // 주식수
+  stkrt: string          // 지분율
+  ctr_stkqy: string      // 계약주식수
+  ctr_stkrt: string      // 계약지분율
+  report_resn_disc_dt: string  // 보고사유발생일
+  reporter: string        // 보고자
+  nv_stkqy?: string      // 담보제공 주식수
+  nv_stkrt?: string      // 담보제공 지분율
 }
 
 // 공시 데이터 필터 옵션
@@ -192,4 +225,48 @@ export interface DartRealtimeMonitor {
   lastCheckTime: Date
   newDisclosures: DartDisclosureData[]
   alertsSent: number
+}
+
+// 임원·주요주주 소유현황 API 응답 (elestock 엔드포인트)
+export interface DartExecutiveStockResponse {
+  status: string
+  message: string
+  list?: DartExecutiveStockItem[]
+}
+
+// 임원·주요주주 소유현황 개별 항목
+export interface DartExecutiveStockItem {
+  rcept_no: string        // 접수번호
+  rcept_dt: string        // 접수일자
+  corp_code: string       // 고유번호
+  corp_name: string       // 회사명
+  repror: string          // 보고자
+  isu_exctv_rgist_at: string    // 발행회사 임원 등기여부
+  isu_exctv_ofcps: string       // 발행회사 임원 직책
+  sp_stock_lmp_cnt: string      // 특정증권 대량보유 수량
+  sp_stock_lmp_rate: string     // 특정증권 대량보유 비율
+}
+
+// DART API Raw Response (snake_case from API)
+export interface DartDisclosureRawResponse {
+  status: string
+  message: string
+  list?: DartDisclosureRawItem[]
+  page_no: number
+  page_count: number
+  total_count: number
+  total_page: number
+}
+
+// DART API Raw Disclosure Item (snake_case fields)
+export interface DartDisclosureRawItem {
+  corp_cls: string        // 법인구분
+  corp_name: string       // 회사명
+  corp_code: string       // 고유번호
+  stock_code: string      // 주식코드
+  report_nm: string       // 보고서명
+  rcept_no: string        // 접수번호
+  flr_nm: string          // 공시제출인명
+  rcept_dt: string        // 접수일자 (YYYYMMDD)
+  rm: string              // 비고
 }

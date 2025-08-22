@@ -56,6 +56,15 @@
           </q-item-section>
         </q-item>
 
+        <q-item clickable v-ripple to="/dart-data">
+          <q-item-section avatar>
+            <q-icon name="business" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>DART Data</q-item-label>
+          </q-item-section>
+        </q-item>
+
         <q-separator />
 
         <q-item-label header>

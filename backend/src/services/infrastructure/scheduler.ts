@@ -1,7 +1,7 @@
 import cron from 'node-cron'
-import { KRXCollector } from '@/collectors/financial/krxCollector'
+import { KrxCollectionService } from '@/services/collectors/KrxCollectionService'
 import { BOKCollector } from '@/collectors/financial/bokCollector'
-// import { DARTCollector } from '@/collectors/dartCollector' // Not implemented yet
+import { DartCollectionService } from '@/services/collectors/DartCollectionService'
 import { FearGreedCalculator } from '@/services/core/fearGreedCalculator'
 import { DatabaseService } from '@/services/core/databaseService'
 // import { DartBatchService } from '@/services/dartBatchService' // Not implemented yet
@@ -188,6 +188,11 @@ export async function collectDailyData(date?: string): Promise<void> {
       console.error(`[Manual] ${targetDate} BOK 데이터 수집 실패:`, error)
     })
 
+    // DART 공시 데이터 수집
+    await collectDARTData(targetDate).catch(error => {
+      console.error(`[Manual] ${targetDate} DART 데이터 수집 실패:`, error)
+    })
+
     // 외부 지수(Upbit, CNN, KoreaFG) 수집 및 저장
     await (async () => {
       try {
@@ -227,7 +232,7 @@ export async function collectDailyData(date?: string): Promise<void> {
  * KRX 데이터 수집
  */
 async function collectKRXData(date?: string): Promise<void> {
-  const targetDate: string = date ?? KRXCollector.getLastBusinessDay() ?? getTodayDateString()
+  const targetDate: string = date ?? KrxCollectionService.getLastBusinessDay() ?? getTodayDateString()
   try {
     console.log(`[KRX] ${targetDate} 데이터 수집 시작`)
 
@@ -235,35 +240,16 @@ async function collectKRXData(date?: string): Promise<void> {
       throw new Error('Target date is required for KRX data collection')
     }
 
-    // 각각의 데이터를 병렬로 수집
-    const [kospiData, kosdaqData, tradingData, optionData] = await Promise.all([
-      KRXCollector.fetchKRXStockData(targetDate, 'KOSPI'),
-      KRXCollector.fetchKRXStockData(targetDate, 'KOSDAQ'),
-      KRXCollector.fetchInvestorTradingData(targetDate),
-      KRXCollector.fetchOptionData(targetDate).catch(err => {
-        console.warn('[KRX] Option data collection skipped:', err.message)
-        return null
-      })
-    ])
-
-    // 데이터베이스에 저장 (KOSDAQ은 별도 저장/로깅)
-    await DatabaseService.saveKRXData(targetDate, {
-      kospi: kospiData,
-      trading: tradingData,
-      options: optionData
-    })
-    if (kosdaqData) { 
-      console.log(`  - KOSDAQ: ${kosdaqData.stck_prpr} (${kosdaqData.prdy_ctrt}%) [저장됨]`)
-    }
-    if (kospiData) {
-      console.log(`  - KOSPI: ${kospiData.stck_prpr} (${kospiData.prdy_ctrt}%)`)
-    }
-    if (tradingData) {
-      // 외국인 순매수 수량 (frgn_ntby_qty)
-      console.log(`  - 외국인 순매수: ${Number(tradingData.frgn_ntby_qty).toLocaleString()}주`)
-    }
-    if (optionData) {
-      console.log(`  - Put/Call 비율: ${optionData.putCallRatio.toFixed(2)}`)
+    // 새로운 KrxCollectionService 사용하여 전체 시장데이터 수집
+    const result = await KrxCollectionService.collectDailyMarketData(targetDate, true)
+    
+    if (result.kospiSuccess && result.kosdaqSuccess) {
+      console.log(`[KRX] ${targetDate} 데이터 수집 및 저장 완료`)
+      console.log(`  - KOSPI 성공: ${result.kospiSuccess}`)
+      console.log(`  - KOSDAQ 성공: ${result.kosdaqSuccess}`)
+      console.log(`  - 투자자데이터 성공: ${result.investorDataSuccess}`)
+    } else {
+      console.warn(`[KRX] ${targetDate} 일부 데이터 수집 실패:`, result.summary.errors)
     }
 
   } catch (error) {
@@ -313,6 +299,34 @@ async function collectBOKData(date?: string): Promise<void> {
     console.error('[BOK] 데이터 수집 실패:', error)
     // 에러 알림
     // await sendErrorNotification('BOK 데이터 수집 실패', error)
+    throw error
+  }
+}
+
+/**
+ * DART 공시 데이터 수집
+ */
+async function collectDARTData(date?: string): Promise<void> {
+  const targetDate: string = date ?? DartCollectionService.getLastBusinessDay()
+  try {
+    console.log(`[DART] ${targetDate} 공시 데이터 수집 시작`)
+
+    if (!targetDate) {
+      throw new Error('Target date is required for DART data collection')
+    }
+
+    // 새로운 DartCollectionService 사용하여 일일 공시 데이터 수집
+    const dartResult = await DartCollectionService.collectDailyDisclosures(targetDate, true)
+
+    console.log(`[DART] ${targetDate} 공시 데이터 수집 완료: ${dartResult.totalDisclosures}건`)
+    console.log(`  - 정기공시: ${dartResult.regularReports.length}건`)
+    console.log(`  - 주요사항보고: ${dartResult.majorEvents.length}건`) 
+    console.log(`  - 지분공시: ${dartResult.stockEvents.length}건`)
+
+  } catch (error) {
+    console.error('[DART] 공시 데이터 수집 실패:', error)
+    // 에러 알림
+    // await sendErrorNotification('DART 데이터 수집 실패', error)
     throw error
   }
 }

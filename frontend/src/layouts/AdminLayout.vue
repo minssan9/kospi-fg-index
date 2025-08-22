@@ -128,6 +128,36 @@
             </q-item-section>
           </q-item>
 
+          <q-item
+            clickable
+            v-ripple
+            :to="{ name: 'admin-dart' }"
+            exact-active-class="bg-blue-1 text-blue-10"
+          >
+            <q-item-section avatar>
+              <q-icon name="business" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>DART 관리</q-item-label>
+              <q-item-label caption>공시 데이터 수집 관리</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item
+            clickable
+            v-ripple
+            :to="{ name: 'admin-fear-greed' }"
+            exact-active-class="bg-blue-1 text-blue-10"
+          >
+            <q-item-section avatar>
+              <q-icon name="trending_up" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Fear & Greed 관리</q-item-label>
+              <q-item-label caption>지수 계산 및 관리</q-item-label>
+            </q-item-section>
+          </q-item>
+
           <q-separator class="q-my-md" />
 
           <q-item-label header class="text-grey-8">

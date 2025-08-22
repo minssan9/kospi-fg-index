@@ -33,6 +33,33 @@ npm run db:migrate          # Run database migrations
 npm run collect:data         # Collect daily market data
 npm run collect:historical   # Collect historical data range
 
+# DART Data Collection (with advanced pagination & filtering)
+npm run collect:dart [date]  # Collect DART data for specific date
+npm run collect:dart -- --help # Show usage help
+npm run collect:dart-daily   # Collect for today
+npm run collect:dart-yesterday # Collect for yesterday
+npm run collect:dart-business # Collect for last business day
+
+# Available date formats:
+# - YYYY-MM-DD (e.g., 2024-01-15)
+# - today, yesterday, last-business, last-week
+
+# Basic options:
+# - --dry-run: Preview without saving
+# - --no-save: Fetch without database storage
+# - --help: Show detailed usage
+
+# Advanced pagination & filtering:
+# - --max-pages=N: Limit collection to N pages (1-100, default: 50)
+# - --page-size=N: Records per page (1-100, default: 100)
+# - --report-code=X: Filter by disclosure type
+#   A=정기공시, B=주요사항보고, C=발행공시, D=지분공시
+
+# Examples:
+# npm run collect:dart -- 2024-01-15 --max-pages=10 --dry-run
+# npm run collect:dart -- yesterday --report-code=B --dry-run
+# npm run collect:dart -- last-business --page-size=50
+
 # Code Quality
 npm run lint                 # Run ESLint
 npm run lint:fix            # Fix ESLint issues automatically

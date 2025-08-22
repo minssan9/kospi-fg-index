@@ -77,6 +77,86 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "DART: Show Help",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart", "--", "--help"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Today (Dry Run)",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart", "--", "today", "--dry-run"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Yesterday (Dry Run)",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart", "--", "yesterday", "--dry-run"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Last Business Day (Dry Run)",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart", "--", "last-business", "--dry-run"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Custom Date (Dry Run)",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart", "--", "${input:customDate}", "--dry-run"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Today (Save to DB)",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart", "--", "today"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Yesterday (Save to DB)",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart", "--", "yesterday"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Custom Date (Save to DB)",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart", "--", "${input:customDate}"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "DART: Collect Daily Data",
             "runtimeExecutable": "npm",
             "runtimeArgs": ["run", "collect:dart-daily"],
@@ -90,6 +170,16 @@
             "name": "DART: Collect Financial Data",
             "runtimeExecutable": "npm",
             "runtimeArgs": ["run", "collect:dart-financial"],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "DART: Collect Company Data",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "collect:dart-companies"],
             "cwd": "${workspaceFolder}/backend",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen"
@@ -117,6 +207,14 @@
             "envFile": "${workspaceFolder}/backend/.env",
             "stopOnEntry": false,
             "restart": true
+        }
+    ],
+    "inputs": [
+        {
+            "id": "customDate",
+            "description": "Enter date for DART collection (YYYY-MM-DD, today, yesterday, last-business, last-week)",
+            "default": "today",
+            "type": "promptString"
         }
     ]
 }

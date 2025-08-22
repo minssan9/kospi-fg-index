@@ -2,19 +2,13 @@
  * @jest-environment node
  */
 
-import { DartCollectionService } from '@/services/collectors/DartCollectionService'
-import { DartApiClient } from '@/clients/dart/DartApiClient'
-// import { DartBatchService } from '@/services/core/dartBatchService' // Updated path
+import { DARTCollector } from '@/collectors/regulatory/dartCollector'
+// import { DartBatchService } from '@/services/dartBatchService' // Not implemented yet
 import { logger } from '@/utils/common/logger'
 
 /**
- * DART Collector 테스트 스위트 (REFACTORED)
+ * DART Collector 테스트 스위트
  * 공시 데이터 수집, 배치 처리, 오류 처리 테스트
- * 
- * ⚠️ WARNING: This test file needs updates for the new architecture:
- * - DARTCollector → DartCollectionService + DartApiClient
- * - Some methods like getKOSPI200CorpCodes, checkBatchStatus need implementation
- * - Many tests will fail until methods are fully implemented
  */
 
 // 테스트용 환경 변수 설정
@@ -45,7 +39,7 @@ describe('DART Collector Tests', () => {
     const testDate = '2024-01-15'
     
     try {
-      const result = await DartCollectionService.collectDailyDisclosures(testDate, false)
+      const result = await DARTCollector.collectDailyDisclosures(testDate)
       
       expect(result).toBeDefined()
       expect(result.totalDisclosures).toBeGreaterThanOrEqual(0)
@@ -113,7 +107,7 @@ describe('DART Collector Tests', () => {
       }
     ]
 
-    const filtered = DartCollectionService.filterSentimentRelevantDisclosures(mockDisclosures)
+    const filtered = DARTCollector.filterSentimentRelevantDisclosures(mockDisclosures)
     
     expect(filtered.length).toBeGreaterThan(0)
     expect(filtered.some(d => d.reportName.includes('대량보유'))).toBe(true)
@@ -139,8 +133,8 @@ describe('DART Collector Tests', () => {
    * 영업일 계산 테스트
    */
   test('영업일 계산 로직', () => {
-    const lastBusinessDay = DartCollectionService.getLastBusinessDay(1)
-    const lastWeek = DartCollectionService.getLastBusinessDay(5)
+    const lastBusinessDay = DARTCollector.getLastBusinessDay(1)
+    const lastWeek = DARTCollector.getLastBusinessDay(5)
     
     expect(lastBusinessDay).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(lastWeek).toMatch(/^\d{4}-\d{2}-\d{2}$/)

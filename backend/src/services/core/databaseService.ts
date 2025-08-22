@@ -1,11 +1,6 @@
 import { PrismaClient } from '@prisma/client'
-import type { 
-  InterestRateData, 
-  ExchangeRateData, 
-  EconomicIndicatorData 
-} from '@/collectors/financial/bokCollector'
-import type { FearGreedResult } from './fearGreedCalculator'
-import type { krxStockData, InvestorTradingData, OptionData } from '@/types/collectors/krxTypes'
+// 이 서비스는 DART 관련 로깅 및 기본 데이터베이스 작업만 담당
+// 다른 데이터 타입들은 각각의 전용 Repository로 이동됨
 
 const prisma = new PrismaClient()
 
@@ -14,238 +9,6 @@ const prisma = new PrismaClient()
  */
 export class DatabaseService {
   
-  /**
-   * KRX (KOSPI/KOSDAQ) 데이터 저장
-   */
-  static async saveKRXStockData(data: krxStockData, market: 'KOSPI' | 'KOSDAQ'): Promise<void> {
-    const model = market === 'KOSPI' ? 'kospiData' : 'kosdaqData';
-    // Exclude id, createdAt, updatedAt
-    const { date, ...fields } = data;
-    try {
-      await (prisma as any)[model].upsert({
-        where: { date: new Date(date) },
-        update: {
-          ...fields,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(date),
-          ...fields
-        }
-      })
-      console.log(`[DB] ${market} 데이터 저장 완료: ${date}`)
-    } catch (error) {
-      console.error(`[DB] ${market} 데이터 저장 실패 (${date}):`, error)
-      throw error
-    }
-  }
-
-  /**
-   * 투자자별 매매동향 데이터 저장
-   */
-  static async saveInvestorTradingData(data: InvestorTradingData): Promise<void> {
-    // Exclude id, createdAt, updatedAt
-    const { date, ...fields } = data;
-    try {
-      await prisma.investorTrading.upsert({
-        where: { date: new Date(date) },
-        update: {
-          ...fields,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(date),
-          ...fields
-        }
-      })
-      console.log(`[DB] 투자자별 매매동향 저장 완료: ${date}`)
-    } catch (error) {
-      console.error(`[DB] 투자자별 매매동향 저장 실패 (${date}):`, error)
-      throw error
-    }
-  }
-
-  /**
-   * 옵션 데이터 저장
-   */
-  static async saveOptionData(data: OptionData): Promise<void> {
-    try {
-      await prisma.optionData.upsert({
-        where: { date: new Date(data.date) },
-        update: {
-          putVolume: BigInt(data.putVolume),
-          callVolume: BigInt(data.callVolume),
-          putCallRatio: data.putCallRatio,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(data.date),
-          putVolume: BigInt(data.putVolume),
-          callVolume: BigInt(data.callVolume),
-          putCallRatio: data.putCallRatio
-        }
-      })
-      
-      console.log(`[DB] 옵션 데이터 저장 완료: ${data.date}`)
-    } catch (error) {
-      console.error(`[DB] 옵션 데이터 저장 실패 (${data.date}):`, error)
-      throw error
-    }
-  }
-
-  /**
-   * 금리 데이터 저장
-   */
-  static async saveInterestRateData(data: InterestRateData): Promise<void> {
-    try {
-      await prisma.interestRateData.upsert({
-        where: { date: new Date(data.date) },
-        update: {
-          baseRate: data.baseRate,
-          callRate: data.callRate,
-          cd91Rate: data.cd91Rate,
-          treasuryBond3Y: data.treasuryBond3Y,
-          treasuryBond10Y: data.treasuryBond10Y,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(data.date),
-          baseRate: data.baseRate,
-          callRate: data.callRate,
-          cd91Rate: data.cd91Rate,
-          treasuryBond3Y: data.treasuryBond3Y,
-          treasuryBond10Y: data.treasuryBond10Y
-        }
-      })
-      
-      console.log(`[DB] 금리 데이터 저장 완료: ${data.date}`)
-    } catch (error) {
-      console.error(`[DB] 금리 데이터 저장 실패 (${data.date}):`, error)
-      throw error
-    }
-  }
-
-  /**
-   * 환율 데이터 저장
-   */
-  static async saveExchangeRateData(data: ExchangeRateData): Promise<void> {
-    try {
-      await prisma.exchangeRateData.upsert({
-        where: { date: new Date(data.date) },
-        update: {
-          usdKrw: data.usdKrw,
-          eurKrw: data.eurKrw,
-          jpyKrw: data.jpyKrw,
-          cnyKrw: data.cnyKrw,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(data.date),
-          usdKrw: data.usdKrw,
-          eurKrw: data.eurKrw,
-          jpyKrw: data.jpyKrw,
-          cnyKrw: data.cnyKrw
-        }
-      })
-      
-      console.log(`[DB] 환율 데이터 저장 완료: ${data.date}`)
-    } catch (error) {
-      console.error(`[DB] 환율 데이터 저장 실패 (${data.date}):`, error)
-      throw error
-    }
-  }
-
-  /**
-   * 경제지표 데이터 저장
-   */
-  static async saveEconomicIndicatorData(data: EconomicIndicatorData): Promise<void> {
-    try {
-      await prisma.economicIndicatorData.upsert({
-        where: { date: new Date(data.date) },
-        update: {
-          cpi: data.cpi,
-          ppi: data.ppi,
-          unemploymentRate: data.unemploymentRate,
-          gdpGrowthRate: data.gdpGrowthRate,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(data.date),
-          cpi: data.cpi,
-          ppi: data.ppi,
-          unemploymentRate: data.unemploymentRate,
-          gdpGrowthRate: data.gdpGrowthRate
-        }
-      })
-      
-      console.log(`[DB] 경제지표 데이터 저장 완료: ${data.date}`)
-    } catch (error) {
-      console.error(`[DB] 경제지표 데이터 저장 실패 (${data.date}):`, error)
-      throw error
-    }
-  }
-
-  /**
-   * Fear & Greed Index 저장
-   */
-  static async saveFearGreedIndex(data: FearGreedResult): Promise<void> {
-    try {
-      await prisma.fearGreedIndex.upsert({
-        where: { date: new Date(data.date) },
-        update: {
-          value: data.value,
-          level: data.level,
-          confidence: data.confidence,
-          priceMomentum: data.components.priceMomentum,
-          investorSentiment: data.components.investorSentiment,
-          putCallRatio: data.components.putCallRatio,
-          volatilityIndex: data.components.volatilityIndex,
-          safeHavenDemand: data.components.safeHavenDemand,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(data.date),
-          value: data.value,
-          level: data.level,
-          confidence: data.confidence,
-          priceMomentum: data.components.priceMomentum,
-          investorSentiment: data.components.investorSentiment,
-          putCallRatio: data.components.putCallRatio,
-          volatilityIndex: data.components.volatilityIndex,
-          safeHavenDemand: data.components.safeHavenDemand
-        }
-      })
-      
-      console.log(`[DB] Fear & Greed Index 저장 완료: ${data.date} (${data.value})`)
-    } catch (error) {
-      console.error(`[DB] Fear & Greed Index 저장 실패 (${data.date}):`, error)
-      throw error
-    }
-  }
-
-  /**
-   * VKOSPI 데이터 저장
-   */
-  static async saveVKOSPIData(date: string, value: number): Promise<void> {
-    try {
-      await prisma.vkospiData.upsert({
-        where: { date: new Date(date) },
-        update: {
-          value: value,
-          updatedAt: new Date()
-        },
-        create: {
-          date: new Date(date),
-          value: value
-        }
-      })
-      
-      console.log(`[DB] VKOSPI 데이터 저장 완료: ${date} (${value})`)
-    } catch (error) {
-      console.error(`[DB] VKOSPI 데이터 저장 실패 (${date}):`, error)
-      throw error
-    }
-  }
 
   /**
    * 국채 수익률 커브 데이터 저장
@@ -317,127 +80,100 @@ export class DatabaseService {
     }
   }
 
+
+
+
   /**
-   * KRX 데이터 일괄 저장
+   * DART 배치 로그 저장
    */
-  static async saveKRXData(date: string, data: {
-    kospi: krxStockData | null
-    trading: InvestorTradingData | null
-    options: OptionData | null
+  static async saveDartBatchLog(data: {
+    jobId: string
+    jobType: string
+    status: string
+    startTime: Date
+    endTime?: Date
+    processedCount: number
+    successCount: number
+    failedCount: number
+    errors?: string[]
+    parameters?: any
+    resultSummary?: any
   }): Promise<void> {
-    const startTime = Date.now()
-    let recordCount = 0
-    let errors: string[] = []
-
     try {
-      // KOSPI 데이터 저장
-      if (data.kospi) {
-        await this.saveKRXStockData(data.kospi, 'KOSPI')
-        recordCount++
-      }
-
-      // 투자자별 매매동향 저장
-      if (data.trading) {
-        await this.saveInvestorTradingData(data.trading)
-        recordCount++
-      }
-
-      // 옵션 데이터 저장
-      if (data.options) {
-        await this.saveOptionData(data.options)
-        recordCount++
-      }
-
-      const duration = Date.now() - startTime
-      const status = errors.length > 0 ? 'PARTIAL' : 'SUCCESS'
-      
-      await this.saveDataCollectionLog(
-        date,
-        'KRX',
-        'MARKET_DATA',
-        status,
-        recordCount,
-        errors.length > 0 ? errors.join('; ') : undefined,
-        duration
-      )
-
-      console.log(`[DB] KRX 데이터 일괄 저장 완료: ${recordCount}개 레코드`)
-
+      await prisma.dartBatchLog.upsert({
+        where: { jobId: data.jobId },
+        update: {
+          status: data.status,
+          endTime: data.endTime || null,
+          processedCount: data.processedCount,
+          successCount: data.successCount,
+          failedCount: data.failedCount,
+          errors: data.errors ? JSON.stringify(data.errors) : null,
+          parameters: data.parameters ? JSON.stringify(data.parameters) : null,
+          resultSummary: data.resultSummary ? JSON.stringify(data.resultSummary) : null
+        },
+        create: {
+          jobId: data.jobId,
+          jobType: data.jobType,
+          status: data.status,
+          startTime: data.startTime,
+          endTime: data.endTime || null,
+          processedCount: data.processedCount,
+          successCount: data.successCount,
+          failedCount: data.failedCount,
+          errors: data.errors ? JSON.stringify(data.errors) : null,
+          parameters: data.parameters ? JSON.stringify(data.parameters) : null,
+          resultSummary: data.resultSummary ? JSON.stringify(data.resultSummary) : null
+        }
+      })
+      console.log(`[DB] DART 배치 로그 저장 완료: ${data.jobId}`)
     } catch (error) {
-      const duration = Date.now() - startTime
-      await this.saveDataCollectionLog(
-        date,
-        'KRX',
-        'MARKET_DATA',
-        'FAILED',
-        recordCount,
-        error instanceof Error ? error.message : String(error),
-        duration
-      )
+      console.error(`[DB] DART 배치 로그 저장 실패 (${data.jobId}):`, error)
       throw error
     }
   }
 
   /**
-   * BOK 데이터 일괄 저장
+   * DART 수집 통계 저장
    */
-  static async saveBOKData(date: string, data: {
-    interestRates: InterestRateData | null
-    exchangeRates: ExchangeRateData | null
-    economicIndicators: EconomicIndicatorData | null
+  static async saveDartCollectionStat(data: {
+    date: string
+    totalApiCalls: number
+    successfulCalls: number
+    failedCalls: number
+    dataPoints: number
+    averageResponseTime: number
+    rateLimitRemaining: number
   }): Promise<void> {
-    const startTime = Date.now()
-    let recordCount = 0
-    let errors: string[] = []
-
     try {
-      // 금리 데이터 저장
-      if (data.interestRates) {
-        await this.saveInterestRateData(data.interestRates)
-        recordCount++
-      }
-
-      // 환율 데이터 저장
-      if (data.exchangeRates) {
-        await this.saveExchangeRateData(data.exchangeRates)
-        recordCount++
-      }
-
-      // 경제지표 데이터 저장
-      if (data.economicIndicators) {
-        await this.saveEconomicIndicatorData(data.economicIndicators)
-        recordCount++
-      }
-
-      const duration = Date.now() - startTime
-      const status = errors.length > 0 ? 'PARTIAL' : 'SUCCESS'
-      
-      await this.saveDataCollectionLog(
-        date,
-        'BOK',
-        'ECONOMIC_DATA',
-        status,
-        recordCount,
-        errors.length > 0 ? errors.join('; ') : undefined,
-        duration
-      )
-
-      console.log(`[DB] BOK 데이터 일괄 저장 완료: ${recordCount}개 레코드`)
-
+      await prisma.dartCollectionStat.upsert({
+        where: { date: new Date(data.date) },
+        update: {
+          totalApiCalls: data.totalApiCalls,
+          successfulCalls: data.successfulCalls,
+          failedCalls: data.failedCalls,
+          dataPoints: data.dataPoints,
+          averageResponseTime: data.averageResponseTime,
+          rateLimitRemaining: data.rateLimitRemaining,
+          updatedAt: new Date()
+        },
+        create: {
+          date: new Date(data.date),
+          totalApiCalls: data.totalApiCalls,
+          successfulCalls: data.successfulCalls,
+          failedCalls: data.failedCalls,
+          dataPoints: data.dataPoints,
+          averageResponseTime: data.averageResponseTime,
+          rateLimitRemaining: data.rateLimitRemaining
+        }
+      })
+      console.log(`[DB] DART 수집 통계 저장 완료: ${data.date}`)
     } catch (error) {
-      const duration = Date.now() - startTime
-      await this.saveDataCollectionLog(
-        date,
-        'BOK',
-        'ECONOMIC_DATA',
-        'FAILED',
-        recordCount,
-        error instanceof Error ? error.message : String(error),
-        duration
-      )
+      console.error(`[DB] DART 수집 통계 저장 실패 (${data.date}):`, error)
       throw error
     }
   }
+
 
   /**
    * 데이터베이스 연결 종료
@@ -565,4 +301,9 @@ export class DatabaseService {
       throw error
     }
   }
+
+
+
+
+
 } 

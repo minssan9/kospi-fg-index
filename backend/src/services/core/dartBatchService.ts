@@ -1,13 +1,14 @@
-import { DARTCollector } from '@/collectors/dartCollector'
-import { DatabaseService } from '@/services/databaseService'
-import { logger } from '@/utils/logger'
+import { DartApiClient } from '@/clients/dart/DartApiClient'
+import { DartCollectionService } from '@/services/collectors/DartCollectionService'
+import { DartDisclosureRepository } from '@/repositories/dart/DartDisclosureRepository'
+import { logger } from '@/utils/common/logger'
 import { 
   DartBatchResult, 
   DartBatchQueueItem, 
   DartFilterOptions, 
   SentimentRelevantDisclosure,
   DartCollectionStats 
-} from '@/types/dartTypes'
+} from '@/types/collectors/dartTypes'
 import cron from 'node-cron'
 
 /**
@@ -92,7 +93,8 @@ export class DartBatchService {
     businessYear: string
   ): Promise<string> {
     const jobId = `financial-${businessYear}-${Date.now()}`
-    const kospi200Corps = await DARTCollector.getKOSPI200CorpCodes()
+    // TODO: Implement getKOSPI200CorpCodes in DartCollectionService
+    const kospi200Corps: string[] = [] // Placeholder until implemented
 
     const queueItem: DartBatchQueueItem = {
       id: jobId,
@@ -208,15 +210,16 @@ export class DartBatchService {
   ): Promise<any> {
     const startTime = Date.now()
     
-    // DART API 호출
-    const disclosures = await DARTCollector.collectDailyDisclosures(date)
+    // DART API 호출 - 새로운 서비스 사용
+    const disclosures = await DartCollectionService.collectDailyDisclosures(date, false)
     
     // Fear & Greed 지수 관련 공시 필터링
-    const sentimentRelevant = DARTCollector.filterSentimentRelevantDisclosures([
+    const allDisclosures = [
       ...disclosures.regularReports,
       ...disclosures.majorEvents,
       ...disclosures.stockEvents
-    ])
+    ]
+    const sentimentRelevant = DartCollectionService.filterSentimentRelevantDisclosures(allDisclosures)
 
     // 데이터베이스에 저장
     await this.saveDartDisclosures(sentimentRelevant, date)
@@ -241,7 +244,8 @@ export class DartBatchService {
   ): Promise<any> {
     const startTime = Date.now()
     
-    const results = await DARTCollector.collectFinancialDataBatch(corpCodes, businessYear)
+    // TODO: Implement collectFinancialDataBatch in DartCollectionService
+    const results: any[] = [] // Placeholder until implemented
     
     // 성공적으로 수집된 재무 데이터만 저장
     const successResults = results.filter(r => !r.error)
@@ -267,7 +271,7 @@ export class DartBatchService {
 
     for (const corpCode of corpCodes) {
       try {
-        const companyInfo = await DARTCollector.fetchCompanyInfo(corpCode)
+        const companyInfo = await DartApiClient.fetchCompanyInfo(corpCode)
         results.push({ corpCode, data: companyInfo })
       } catch (error) {
         results.push({ corpCode, error: (error as Error).message })
@@ -292,7 +296,7 @@ export class DartBatchService {
   private static startScheduler(): void {
     // 매일 오후 6시에 전일 공시 데이터 수집
     cron.schedule('0 18 * * 1-5', async () => {
-      const yesterday = DARTCollector.getLastBusinessDay(1)
+      const yesterday = DartCollectionService.getLastBusinessDay(1)
       await this.scheduleDailyDisclosureCollection(yesterday)
     })
 
@@ -305,16 +309,29 @@ export class DartBatchService {
   }
 
   /**
-   * 데이터베이스 저장 메서드들
+   * 데이터베이스 저장 메서드들 - 새로운 Repository 사용
    */
   private static async saveDartDisclosures(
-    disclosures: any[], 
+    disclosures: SentimentRelevantDisclosure[], 
     date: string
   ): Promise<void> {
     try {
-      // 실제 데이터베이스 저장 로직 (Prisma 사용)
-      // 여기서는 로그만 출력
-      logger.info(`[DART Batch] 공시 데이터 저장: ${disclosures.length}건 (${date})`)
+      // DartDisclosureRepository 사용하여 배치 저장
+      const result = await DartDisclosureRepository.saveDisclosuresBatch(
+        disclosures.map(d => ({
+          receiptNumber: d.receiptNumber,
+          corpCode: d.corpCode,
+          corpName: d.corpName,
+          reportName: d.reportName,
+          receiptDate: d.receiptDate,
+          flrName: d.flrName,
+          remarks: d.remarks,
+          stockCode: d.stockCode,
+          disclosureDate: d.disclosureDate,
+          reportCode: d.reportCode
+        }))
+      )
+      logger.info(`[DART Batch] 공시 데이터 저장: ${result.success}건 성공, ${result.failed}건 실패 (${date})`)
     } catch (error) {
       logger.error('[DART Batch] 공시 데이터 저장 실패:', error)
       throw error
@@ -322,11 +339,23 @@ export class DartBatchService {
   }
 
   private static async saveFinancialData(results: any[]): Promise<void> {
-    logger.info(`[DART Batch] 재무 데이터 저장: ${results.length}건`)
+    try {
+      // TODO: 재무 데이터용 Repository 추가 시 구현
+      logger.info(`[DART Batch] 재무 데이터 저장: ${results.length}건 (Repository 구현 필요)`)
+    } catch (error) {
+      logger.error('[DART Batch] 재무 데이터 저장 실패:', error)
+      throw error
+    }
   }
 
   private static async saveCompanyInfo(results: any[]): Promise<void> {
-    logger.info(`[DART Batch] 기업 정보 저장: ${results.length}건`)
+    try {
+      // TODO: 기업 정보용 Repository 추가 시 구현
+      logger.info(`[DART Batch] 기업 정보 저장: ${results.length}건 (Repository 구현 필요)`)
+    } catch (error) {
+      logger.error('[DART Batch] 기업 정보 저장 실패:', error)
+      throw error
+    }
   }
 
   private static async saveBatchStatus(
