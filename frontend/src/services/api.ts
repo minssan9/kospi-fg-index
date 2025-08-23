@@ -1,6 +1,14 @@
 import { api } from '@/boot/axios'
+import { apiClient } from './apiClient'
+import type { 
+  FearGreedIndex as FearGreedIndexType,
+  FearGreedHistory,
+  KospiData,
+  SystemStatus,
+  CollectionStatus
+} from '@/types/api'
 
-// API 응답 타입 정의
+// Legacy compatibility - re-export types
 export interface FearGreedIndex {
   value: number
   level: string
@@ -66,14 +74,20 @@ export interface CollectionStatus {
   createdAt: string
 }
 
-// Fear & Greed API
+// Enhanced Fear & Greed API with proper backend integration
 export const fearGreedApi = {
-  // 현재 Fear & Greed Index 가져오기
+  // 현재 Fear & Greed Index 가져오기 (new backend integration)
   async getCurrentIndex(): Promise<FearGreedIndex> {
     try {
-      const response = await api.get<{ success: boolean; data: FearGreedIndex }>('/fear-greed/current')
-      return response.data.data
+      const data = await apiClient.getFearGreedLatest()
+      return {
+        value: data.value,
+        level: data.level,
+        date: data.date,
+        components: data.components
+      }
     } catch (error) {
+      console.warn('Failed to fetch current index, using fallback:', error)
       return {
         value: 45,
         level: 'Fear',
@@ -89,12 +103,17 @@ export const fearGreedApi = {
     }
   },
 
-  // 히스토리 데이터 가져오기
+  // 히스토리 데이터 가져오기 (new backend integration)
   async getHistoryData(days: number = 30): Promise<HistoryData[]> {
     try {
-      const response = await api.get<{ success: boolean; data: HistoryData[] }>(`/fear-greed/history?days=${days}`)
-      return response.data.data
+      const data = await apiClient.getFearGreedHistory(days)
+      return data.map(item => ({
+        date: item.date,
+        value: item.value,
+        level: item.level
+      }))
     } catch (error) {
+      console.warn('Failed to fetch history data, using fallback:', error)
       const sampleData: HistoryData[] = []
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date()
@@ -180,14 +199,14 @@ export const marketApi = {
   }
 }
 
-// 시스템 API
+// Enhanced System API with proper backend integration
 export const systemApi = {
-  // 시스템 상태 조회
+  // 시스템 상태 조회 (new backend integration)
   async getSystemStatus(): Promise<SystemStatus> {
     try {
-      const response = await api.get<{ success: boolean; data: SystemStatus }>('/system/status')
-      return response.data.data
+      return await apiClient.getSystemStatus()
     } catch (error) {
+      console.warn('Failed to fetch system status, using fallback:', error)
       return {
         system: {
           status: 'UNKNOWN',
@@ -202,15 +221,27 @@ export const systemApi = {
     }
   },
 
-  // 데이터 수집 상태 조회
+  // 데이터 수집 상태 조회 (new backend integration)
   async getCollectionStatus(days: number = 7): Promise<CollectionStatus[]> {
     try {
-      const response = await api.get<{ success: boolean; data: CollectionStatus[] }>(`/system/collection-status?days=${days}`)
-      return response.data.data
+      return await apiClient.getCollectionStatus(days)
     } catch (error) {
+      console.warn('Failed to fetch collection status, using fallback:', error)
       return []
+    }
+  },
+
+  // Health check
+  async healthCheck() {
+    try {
+      return await apiClient.healthCheck()
+    } catch (error) {
+      console.warn('Health check failed:', error)
+      throw error
     }
   }
 }
 
+// Export enhanced API client for direct usage
+export { apiClient }
 export default api 

@@ -1,9 +1,12 @@
 import express from 'express'
-import { DatabaseService } from '../services/databaseService'
-import { FearGreedCalculator } from '../services/fearGreedCalculator'
-import { KRXCollector } from '../collectors/krxCollector'
-import { BOKCollector } from '../collectors/bokCollector'
-import { formatDate } from '../utils/dateUtils'
+import { DatabaseService } from '@/services/core/databaseService'
+import { FearGreedCalculator } from '@/services/core/fearGreedCalculator'
+import { KrxCollectionService } from '@/services/collectors/KrxCollectionService'
+import { MarketDataRepository } from '@/repositories/market/MarketDataRepository'
+import { FearGreedIndexRepository } from '@/repositories/analytics/FearGreedIndexRepository'
+import { BOKCollector } from '@/collectors/financial/bokCollector'
+import { formatDate } from '@/utils/common/dateUtils'
+import { requireAdmin, requirePermission, AuthenticatedRequest } from '@/middleware/adminAuth'
 
 const router = express.Router()
 
@@ -61,7 +64,7 @@ router.get('/fear-greed/history', async (req, res) => {
 
     const response = {
       success: true,
-      data: history.map(item => ({
+      data: history.map((item: any) => ({
         date: item.date.toISOString().split('T')[0],
         value: item.value,
         level: item.level,
@@ -104,9 +107,9 @@ router.get('/market/kospi/latest', async (req, res) => {
       success: true,
       data: {
         date: latest.date.toISOString().split('T')[0],
-        change: parseFloat(latest.change.toString()),
-        changePercent: parseFloat(latest.changePercent.toString()),
-        volume: latest.volume.toString(),
+        change: parseFloat(latest.prdy_vrss.toString()),
+        changePercent: parseFloat(latest.prdy_ctrt.toString()),
+        volume: latest.acml_vol.toString(),
         updatedAt: latest.updatedAt
       }
     }
@@ -132,7 +135,7 @@ router.get('/system/collection-status', async (req, res) => {
 
     const response = {
       success: true,
-      data: status.map(item => ({
+      data: status.map((item: any) => ({
         date: item.date.toISOString().split('T')[0],
         source: item.source,
         dataType: item.dataType,
@@ -158,7 +161,7 @@ router.get('/system/collection-status', async (req, res) => {
  * POST /api/admin/collect-data
  * Body: { date: "2024-01-15", sources: ["KRX", "BOK"] }
  */
-router.post('/admin/collect-data', async (req, res) => {
+router.post('/admin/collect-data', requireAdmin, requirePermission('write'), async (req: AuthenticatedRequest, res) => {
   try {
     const { date, sources } = req.body
     const targetDate = date || formatDate(new Date())
@@ -169,8 +172,8 @@ router.post('/admin/collect-data', async (req, res) => {
     if (targetSources.includes('KRX')) {
       try {
         console.log(`[API] KRX 데이터 수집 시작: ${targetDate}`)
-        const krxData = await KRXCollector.collectDailyData(targetDate)
-        await DatabaseService.saveKRXData(targetDate, krxData)
+        // KrxCollectionService already handles saving to database
+        const krxResult = await KrxCollectionService.collectDailyMarketData(targetDate, true)
         results.push({
           source: 'KRX',
           status: 'SUCCESS',
@@ -190,7 +193,16 @@ router.post('/admin/collect-data', async (req, res) => {
       try {
         console.log(`[API] BOK 데이터 수집 시작: ${targetDate}`)
         const bokData = await BOKCollector.collectDailyData(targetDate)
-        await DatabaseService.saveBOKData(targetDate, bokData)
+        // BOK data should be saved using MarketDataRepository
+        if (bokData.interestRates) {
+          await MarketDataRepository.saveInterestRateData(bokData.interestRates)
+        }
+        if (bokData.exchangeRates) {
+          await MarketDataRepository.saveExchangeRateData(bokData.exchangeRates)
+        }
+        if (bokData.economicIndicators) {
+          await MarketDataRepository.saveEconomicIndicatorData(bokData.economicIndicators)
+        }
         results.push({
           source: 'BOK',
           status: 'SUCCESS',
@@ -228,7 +240,7 @@ router.post('/admin/collect-data', async (req, res) => {
  * POST /api/admin/calculate-index
  * Body: { date: "2024-01-15" }
  */
-router.post('/admin/calculate-index', async (req, res) => {
+router.post('/admin/calculate-index', requireAdmin, requirePermission('write'), async (req: AuthenticatedRequest, res) => {
   try {
     const { date } = req.body
     const targetDate = date || formatDate(new Date())
@@ -244,7 +256,7 @@ router.post('/admin/calculate-index', async (req, res) => {
       })
     }
 
-    await DatabaseService.saveFearGreedIndex(result)
+    await FearGreedIndexRepository.saveFearGreedIndex(result)
 
     return res.json({
       success: true,
@@ -294,7 +306,7 @@ router.get('/system/status', async (req, res) => {
           } : null,
           kospiIndex: latestKospi ? {
             date: latestKospi.date.toISOString().split('T')[0],
-            change: parseFloat(latestKospi.change.toString())
+            change: parseFloat(latestKospi.prdy_vrss.toString())
           } : null
         },
         recentCollections: recentLogs.length

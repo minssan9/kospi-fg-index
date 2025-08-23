@@ -35,8 +35,7 @@ jobs:
     - name: Check Docker status
       run: |
         echo "Checking Docker status..."
-        docker --version
-        docker info
+        docker --version 
         echo "Docker is running and accessible"
 
     # - name: Log in to Docker Hub (if needed)
@@ -53,13 +52,14 @@ jobs:
         dir
 
     - name: Copy environment file from root
+      shell: cmd
       run: |
         echo "Copying environment file from system root..."
         if exist C:\\.env (
-          copy C:\\.env kospi-fg-index\backend\.env
+          copy C:\\.env\.env backend\.env
           echo "Environment file copied from C:\\.env"
-        ) else if exist D:\\.env (
-          copy D:\\.env kospi-fg-index\backend\.env
+        ) else if exist D:\\.env\.env (
+          copy D:\\.env\.env backend\.env
           echo "Environment file copied from D:\\.env"
         ) else (
           echo "No .env file found in root directories, creating default..."

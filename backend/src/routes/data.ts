@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { DatabaseService } from '../services/databaseService';
+import { DatabaseService } from '@/services/core/databaseService';
 
 const router = Router();
 
@@ -13,11 +13,11 @@ router.get('/kospi', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       data: {
-        current: parseFloat(kospi.index.toString()),
-        change: parseFloat(kospi.change.toString()),
-        changePercent: parseFloat(kospi.changePercent.toString()),
-        volume: Number(kospi.volume),
-        marketCap: Number(kospi.value)
+        current: parseFloat(kospi.stck_prpr.toString()),
+        change: parseFloat(kospi.prdy_vrss.toString()),
+        changePercent: parseFloat(kospi.prdy_ctrt.toString()),
+        volume: Number(kospi.acml_vol),
+        marketCap: Number(kospi.acml_tr_pbmn)
       },
       timestamp: new Date().toISOString()
     });
@@ -36,11 +36,11 @@ router.get('/kosdaq', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       data: {
-        current: parseFloat(kosdaq.closePrice.toString()),
-        change: parseFloat(kosdaq.change.toString()),
-        changePercent: parseFloat(kosdaq.changePercent.toString()),
-        volume: Number(kosdaq.volume),
-        marketCap: kosdaq.marketCap ? Number(kosdaq.marketCap) : null
+        current: parseFloat(kosdaq.stck_prpr.toString()),
+        change: parseFloat(kosdaq.prdy_vrss.toString()),
+        changePercent: parseFloat(kosdaq.prdy_ctrt.toString()),
+        volume: Number(kosdaq.acml_vol),
+        marketCap: Number(kosdaq.acml_tr_pbmn)
       },
       timestamp: new Date().toISOString()
     });
@@ -63,18 +63,18 @@ router.get('/market', async (req: Request, res: Response) => {
       success: true,
       data: {
         kospi: kospi ? {
-          current: parseFloat(kospi.index.toString()),
-          change: parseFloat(kospi.change.toString()),
-          changePercent: parseFloat(kospi.changePercent.toString()),
-          volume: Number(kospi.volume),
-          marketCap: Number(kospi.value)
+          current: parseFloat(kospi.stck_prpr.toString()),
+          change: parseFloat(kospi.prdy_vrss.toString()),
+          changePercent: parseFloat(kospi.prdy_ctrt.toString()),
+          volume: Number(kospi.acml_vol),
+          marketCap: Number(kospi.acml_tr_pbmn)
         } : null,
         kosdaq: kosdaq ? {
-          current: parseFloat(kosdaq.closePrice.toString()),
-          change: parseFloat(kosdaq.change.toString()),
-          changePercent: parseFloat(kosdaq.changePercent.toString()),
-          volume: Number(kosdaq.volume),
-          marketCap: kosdaq.marketCap ? Number(kosdaq.marketCap) : null
+          current: parseFloat(kosdaq.stck_prpr.toString()),
+          change: parseFloat(kosdaq.prdy_vrss.toString()),
+          changePercent: parseFloat(kosdaq.prdy_ctrt.toString()),
+          volume: Number(kosdaq.acml_vol),
+          marketCap: Number(kosdaq.acml_tr_pbmn)
         } : null
       },
       timestamp: new Date().toISOString()

@@ -1,0 +1,148 @@
+# DART Batch Processing System - Production Integration PRD
+
+## Project Overview
+Integrate and deploy the completed DART (전자공시시스템) batch processing system into production environment for the KOSPI Fear & Greed Index application. The DART system is fully implemented and tested, requiring deployment configuration, monitoring setup, and integration validation.
+
+## Background
+The DART batch processing system has been successfully developed with comprehensive components:
+- Complete collector implementation with DART API integration
+- Full TypeScript type system (15+ interfaces)
+- Batch service with queue management and parallel processing
+- Database schema with 7 new models and optimized indexing
+- Scheduler integration for automated daily/weekly collection
+- REST API routes with rate limiting and validation
+- Comprehensive testing suite with unit, integration, and performance tests
+
+## Business Objectives
+1. **Enhanced Market Analysis**: Capture all major corporate disclosure events for comprehensive sentiment analysis
+2. **Automated Processing**: 24/7 monitoring of Korean corporate disclosures without manual intervention
+3. **Real-time Integration**: Incorporate disclosure sentiment into Fear & Greed Index calculations
+4. **Operational Efficiency**: Reduce manual data collection and improve analysis accuracy
+5. **Scalable Foundation**: Establish robust data pipeline for future expansion
+
+## Functional Requirements
+
+### Core System Integration
+1. **Production Deployment**
+   - Configure production environment variables (DART_API_KEY, DATABASE_URL)
+   - Set up database migration for new DART schema models
+   - Configure production logging and monitoring
+   - Implement health checks and service monitoring
+
+2. **Data Pipeline Activation**
+   - Initialize automated scheduler for daily disclosure collection (weekdays 6:30 PM)
+   - Set up weekly financial data collection (Sunday 2:00 AM)
+   - Implement historical data backfill process
+   - Configure batch job monitoring and alerting
+
+3. **API Integration**
+   - Deploy DART REST API endpoints (/api/dart/*)
+   - Configure rate limiting and security policies
+   - Set up API documentation and testing endpoints
+   - Implement admin interface for batch management
+
+4. **Monitoring & Operations**
+   - Configure application performance monitoring
+   - Set up error tracking and alerting systems
+   - Implement operational dashboards for batch job status
+   - Configure log aggregation and analysis
+
+### Fear & Greed Index Enhancement
+1. **Sentiment Analysis Integration**
+   - Integrate DART disclosure data into sentiment calculation
+   - Implement disclosure impact scoring (0-100 scale)
+   - Configure weight adjustments for Fear & Greed algorithm
+   - Set up trend detection for market-moving events
+
+2. **Data Quality Assurance**
+   - Implement data validation and cleansing processes
+   - Set up duplicate detection and handling
+   - Configure data completeness monitoring
+   - Implement data retention and archival policies
+
+## Technical Requirements
+
+### Infrastructure
+1. **Environment Configuration**
+   - Production DART API credentials registration and configuration
+   - Database scaling for increased data volume (10-50MB/month growth)
+   - Server resources allocation (512MB+ memory for batch processing)
+   - Network security and firewall configuration
+
+2. **Performance Optimization**
+   - Configure concurrent processing limits (50-200 API calls/day)
+   - Implement caching strategies for frequently accessed data
+   - Optimize database queries with proper indexing
+   - Set up connection pooling and resource management
+
+3. **Security & Compliance**
+   - Secure API key management and rotation policies
+   - Implement data encryption for sensitive corporate information
+   - Configure audit logging for compliance tracking
+   - Set up access controls for admin endpoints
+
+### Reliability & Scalability
+1. **Error Handling & Recovery**
+   - Configure circuit breaker patterns for API failures
+   - Implement exponential backoff retry strategies
+   - Set up dead letter queue for failed job recovery
+   - Configure automatic service restart policies
+
+2. **Monitoring & Alerting**
+   - Set up real-time monitoring for batch job status
+   - Configure performance metrics collection (throughput, latency, errors)
+   - Implement alerting for system failures and performance degradation
+   - Set up capacity planning and scaling triggers
+
+## Success Criteria
+
+### Performance Metrics
+- **Daily Processing**: Successfully process 500-2000 disclosure records/day
+- **API Efficiency**: Stay within 10K daily API call limit (50-200 calls/day actual)
+- **Processing Speed**: Complete daily batch in 5-15 minutes
+- **System Reliability**: Achieve 99.5%+ uptime for batch processing
+
+### Quality Metrics
+- **Data Completeness**: Capture 95%+ of relevant corporate disclosures
+- **Sentiment Accuracy**: Improve Fear & Greed Index accuracy by 10-15%
+- **Error Rate**: Maintain <1% batch job failure rate
+- **Response Time**: API responses under 200ms for data queries
+
+### Operational Metrics
+- **Automation Level**: 100% automated daily data collection
+- **Manual Intervention**: Reduce manual data processing by 90%
+- **Monitoring Coverage**: 100% visibility into system health and performance
+- **Recovery Time**: System recovery within 5 minutes of failure detection
+
+## Constraints & Dependencies
+
+### External Dependencies
+- DART API service availability and rate limits
+- Production database capacity and performance
+- Network connectivity and API access permissions
+- Third-party monitoring and alerting services
+
+### Technical Constraints
+- DART API rate limit: 10,000 calls/day
+- Database storage growth: 10-50MB/month
+- Processing window: Business day schedule alignment
+- Memory requirements: 512MB+ for concurrent processing
+
+### Operational Constraints
+- Production deployment window requirements
+- Data retention and compliance policies
+- Security audit and approval processes
+- Staff training and documentation requirements
+
+## Implementation Priority
+1. **High Priority**: Production deployment and basic monitoring
+2. **Medium Priority**: Historical data backfill and performance optimization
+3. **Low Priority**: Advanced analytics and reporting features
+
+## Timeline Expectations
+- **Phase 1 (Week 1)**: Production deployment and basic integration
+- **Phase 2 (Week 2)**: Historical data backfill and monitoring setup
+- **Phase 3 (Week 3)**: Performance optimization and documentation
+- **Phase 4 (Week 4)**: Final testing and go-live preparation
+
+This PRD focuses on operationalizing the completed DART system rather than development, emphasizing deployment, monitoring, and integration aspects for production success.

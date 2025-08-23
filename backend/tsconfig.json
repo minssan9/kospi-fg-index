@@ -39,6 +39,7 @@
   ],
   "ts-node": {
     "esm": false,
-    "files": true
+    "files": true,
+    "require": ["tsconfig-paths/register"]
   }
 } 
