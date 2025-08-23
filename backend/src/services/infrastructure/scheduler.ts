@@ -4,6 +4,8 @@ import { BOKCollector } from '@/collectors/financial/bokCollector'
 import { DartCollectionService } from '@/services/collectors/DartCollectionService'
 import { FearGreedCalculator } from '@/services/core/fearGreedCalculator'
 import { DatabaseService } from '@/services/core/databaseService'
+import { MarketDataRepository } from '@/repositories/market/MarketDataRepository'
+import { FearGreedIndexRepository } from '@/repositories/analytics/FearGreedIndexRepository'
 // import { DartBatchService } from '@/services/dartBatchService' // Not implemented yet
 // import { fetchUpbitIndexData } from '@/collectors/upbitCollector' // Not implemented yet
 // import { fetchCnnFearGreedIndexData } from '@/collectors/cnnCollector' // Not implemented yet
@@ -281,8 +283,16 @@ async function collectBOKData(date?: string): Promise<void> {
 
     const bokData = await BOKCollector.collectDailyData(targetDate)
 
-    // 데이터베이스에 저장
-    await DatabaseService.saveBOKData(targetDate, bokData)
+    // 데이터베이스에 저장 using MarketDataRepository
+    if (bokData.interestRates) {
+      await MarketDataRepository.saveInterestRateData(bokData.interestRates)
+    }
+    if (bokData.exchangeRates) {
+      await MarketDataRepository.saveExchangeRateData(bokData.exchangeRates)
+    }
+    if (bokData.economicIndicators) {
+      await MarketDataRepository.saveEconomicIndicatorData(bokData.economicIndicators)
+    }
 
     console.log(`[BOK] ${targetDate} 데이터 수집 완료`)
 
@@ -319,9 +329,7 @@ async function collectDARTData(date?: string): Promise<void> {
     const dartResult = await DartCollectionService.collectDailyDisclosures(targetDate, true)
 
     console.log(`[DART] ${targetDate} 공시 데이터 수집 완료: ${dartResult.totalDisclosures}건`)
-    console.log(`  - 정기공시: ${dartResult.regularReports.length}건`)
-    console.log(`  - 주요사항보고: ${dartResult.majorEvents.length}건`) 
-    console.log(`  - 지분공시: ${dartResult.stockEvents.length}건`)
+    console.log(`  - 지분공시: ${dartResult.stockDisclosures.length}건`)
 
   } catch (error) {
     console.error('[DART] 공시 데이터 수집 실패:', error)
@@ -351,7 +359,7 @@ async function calculateAndSaveFearGreedIndex(date?: string): Promise<void> {
     }
 
     // 데이터베이스에 저장
-    await DatabaseService.saveFearGreedIndex(fearGreedResult)
+    await FearGreedIndexRepository.saveFearGreedIndex(fearGreedResult)
 
     console.log(`[FearGreed] ${targetDate} 계산 완료`)
     console.log(`  - 지수: ${fearGreedResult.value}`)

@@ -101,8 +101,8 @@ export class KrxCollectionService {
 
       const results = await Promise.allSettled(promises)
       
-      const stockData = results[0].status === 'fulfilled' ? results[0].value : null
-      const investorData = includeInvestorData && results[1] && results[1].status === 'fulfilled' 
+      const stockData = results[0]?.status === 'fulfilled' ? results[0].value : null
+      const investorData = includeInvestorData && results[1]?.status === 'fulfilled' 
         ? results[1].value : null
 
       logger.info(`[KRX Collection] ${market} 수집 완료: 주식데이터(${!!stockData}), 투자자데이터(${!!investorData})`)
@@ -235,7 +235,9 @@ export class KrxCollectionService {
       investorPromises.push(
         MarketDataRepository.saveInvestorTradingData(marketData.kospiInvestorTrading)
           .then(() => { results.investorDataSuccess = true })
-          .catch(error => results.summary.errors.push(`KOSPI 투자자데이터 저장 실패: ${error.message}`))
+          .catch(error => {
+            results.summary.errors.push(`KOSPI 투자자데이터 저장 실패: ${error.message}`)
+          })
       )
     }
 
@@ -243,7 +245,9 @@ export class KrxCollectionService {
       investorPromises.push(
         MarketDataRepository.saveInvestorTradingData(marketData.kosdaqInvestorTrading)
           .then(() => { results.investorDataSuccess = true })
-          .catch(error => results.summary.errors.push(`KOSDAQ 투자자데이터 저장 실패: ${error.message}`))
+          .catch(error => {
+            results.summary.errors.push(`KOSDAQ 투자자데이터 저장 실패: ${error.message}`)
+          })
       )
     }
 

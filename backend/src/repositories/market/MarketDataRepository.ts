@@ -184,18 +184,20 @@ export class MarketDataRepository extends BaseRepository {
       await this.prisma.interestRateData.upsert({
         where: { date: this.validateAndFormatDate(data.date) },
         update: {
-          cd91: data.cd91,
-          treasury3Y: data.treasury3Y,
-          treasury10Y: data.treasury10Y,
-          corporateBond3Y: data.corporateBond3Y,
+          baseRate: data.baseRate,
+          callRate: data.callRate,
+          cd91Rate: data.cd91Rate,
+          treasuryBond3Y: data.treasuryBond3Y,
+          treasuryBond10Y: data.treasuryBond10Y,
           updatedAt: new Date()
         },
         create: {
           date: this.validateAndFormatDate(data.date),
-          cd91: data.cd91,
-          treasury3Y: data.treasury3Y,
-          treasury10Y: data.treasury10Y,
-          corporateBond3Y: data.corporateBond3Y
+          baseRate: data.baseRate,
+          callRate: data.callRate,
+          cd91Rate: data.cd91Rate,
+          treasuryBond3Y: data.treasuryBond3Y,
+          treasuryBond10Y: data.treasuryBond10Y
         }
       })
 
@@ -248,18 +250,18 @@ export class MarketDataRepository extends BaseRepository {
       await this.prisma.economicIndicatorData.upsert({
         where: { date: this.validateAndFormatDate(data.date) },
         update: {
-          consumerPriceIndex: data.consumerPriceIndex,
-          producerPriceIndex: data.producerPriceIndex,
+          cpi: data.cpi,
+          ppi: data.ppi,
           unemploymentRate: data.unemploymentRate,
-          economicGrowthRate: data.economicGrowthRate,
+          gdpGrowthRate: data.gdpGrowthRate,
           updatedAt: new Date()
         },
         create: {
           date: this.validateAndFormatDate(data.date),
-          consumerPriceIndex: data.consumerPriceIndex,
-          producerPriceIndex: data.producerPriceIndex,
+          cpi: data.cpi,
+          ppi: data.ppi,
           unemploymentRate: data.unemploymentRate,
-          economicGrowthRate: data.economicGrowthRate
+          gdpGrowthRate: data.gdpGrowthRate
         }
       })
 

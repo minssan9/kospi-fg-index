@@ -4,7 +4,9 @@ import * as os from 'os'
 import { performance } from 'perf_hooks'
 import { DatabaseService } from '@/services/core/databaseService'
 import { FearGreedCalculator } from '@/services/core/fearGreedCalculator'
-import { KRXCollector } from '@/collectors/financial/krxCollector'
+import { KrxCollectionService } from '@/services/collectors/KrxCollectionService'
+import { MarketDataRepository } from '@/repositories/market/MarketDataRepository'
+import { FearGreedIndexRepository } from '@/repositories/analytics/FearGreedIndexRepository'
 import { BOKCollector } from '@/collectors/financial/bokCollector'
 import { formatDate } from '@/utils/common/dateUtils'
 import { 
@@ -306,20 +308,12 @@ router.post('/collect-data', requireAdmin, requirePermission('write'), async (re
       try {
         console.log(`[Admin] KRX 데이터 수집 시작: ${targetDate}`)
         const startTime = performance.now()
-        const krxData = await KRXCollector.collectDailyData(targetDate)
-        
-        // Transform data to match DatabaseService format
-        const transformedKrxData = {
-          kospi: krxData.kospiData,
-          trading: krxData.kospiInvestorTrading, // Use KOSPI trading data as primary
-          options: null // Options not supported yet
-        }
-        
-        await DatabaseService.saveKRXData(targetDate, transformedKrxData)
+        // KrxCollectionService already handles saving to database
+        const krxResult = await KrxCollectionService.collectDailyMarketData(targetDate, true)
         const duration = Math.round(performance.now() - startTime)
         
-        // Count non-null entries
-        const recordCount = Object.values(krxData).filter(data => data !== null).length
+        // Count successful collections
+        const recordCount = [krxResult.kospiSuccess, krxResult.kosdaqSuccess, krxResult.investorDataSuccess].filter(Boolean).length
         
         results.push({
           source: 'KRX',
@@ -345,7 +339,16 @@ router.post('/collect-data', requireAdmin, requirePermission('write'), async (re
         console.log(`[Admin] BOK 데이터 수집 시작: ${targetDate}`)
         const startTime = performance.now()
         const bokData = await BOKCollector.collectDailyData(targetDate)
-        await DatabaseService.saveBOKData(targetDate, bokData)
+        // BOK data should be saved using MarketDataRepository
+        if (bokData.interestRates) {
+          await MarketDataRepository.saveInterestRateData(bokData.interestRates)
+        }
+        if (bokData.exchangeRates) {
+          await MarketDataRepository.saveExchangeRateData(bokData.exchangeRates)
+        }
+        if (bokData.economicIndicators) {
+          await MarketDataRepository.saveEconomicIndicatorData(bokData.economicIndicators)
+        }
         const duration = Math.round(performance.now() - startTime)
         
         results.push({
@@ -438,7 +441,7 @@ router.post('/recalculate-range', requireAdmin, requirePermission('write'), asyn
       try {
         const result = await FearGreedCalculator.calculateIndex(dateStr)
         if (result) {
-          await DatabaseService.saveFearGreedIndex(result)
+          await FearGreedIndexRepository.saveFearGreedIndex(result)
           results.push({
             date: dateStr,
             status: 'SUCCESS',

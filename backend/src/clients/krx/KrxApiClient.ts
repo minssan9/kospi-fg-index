@@ -132,10 +132,10 @@ export class KrxApiClient {
 
     const [kospi, kosdaq, kospiInvestor, kosdaqInvestor] = await Promise.allSettled(promises)
 
-    results.kospiData = kospi.status === 'fulfilled' ? kospi.value : null
-    results.kosdaqData = kosdaq.status === 'fulfilled' ? kosdaq.value : null  
-    results.kospiInvestorTrading = kospiInvestor.status === 'fulfilled' ? kospiInvestor.value : null
-    results.kosdaqInvestorTrading = kosdaqInvestor.status === 'fulfilled' ? kosdaqInvestor.value : null
+    results.kospiData = kospi?.status === 'fulfilled' ? kospi.value as krxStockData : null
+    results.kosdaqData = kosdaq?.status === 'fulfilled' ? kosdaq.value as krxStockData : null  
+    results.kospiInvestorTrading = kospiInvestor?.status === 'fulfilled' ? kospiInvestor.value as InvestorTradingData : null
+    results.kosdaqInvestorTrading = kosdaqInvestor?.status === 'fulfilled' ? kosdaqInvestor.value as InvestorTradingData : null
 
     console.log(`[KRX] ${date} 전체 시장데이터 수집 완료`)
     return results

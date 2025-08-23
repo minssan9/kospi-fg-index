@@ -1,7 +1,9 @@
 import express from 'express'
 import { DatabaseService } from '@/services/core/databaseService'
 import { FearGreedCalculator } from '@/services/core/fearGreedCalculator'
-import { KRXCollector } from '@/collectors/financial/krxCollector'
+import { KrxCollectionService } from '@/services/collectors/KrxCollectionService'
+import { MarketDataRepository } from '@/repositories/market/MarketDataRepository'
+import { FearGreedIndexRepository } from '@/repositories/analytics/FearGreedIndexRepository'
 import { BOKCollector } from '@/collectors/financial/bokCollector'
 import { formatDate } from '@/utils/common/dateUtils'
 import { requireAdmin, requirePermission, AuthenticatedRequest } from '@/middleware/adminAuth'
@@ -170,16 +172,8 @@ router.post('/admin/collect-data', requireAdmin, requirePermission('write'), asy
     if (targetSources.includes('KRX')) {
       try {
         console.log(`[API] KRX 데이터 수집 시작: ${targetDate}`)
-        const krxData = await KRXCollector.collectDailyData(targetDate)
-        
-        // Transform data to match DatabaseService format
-        const transformedKrxData = {
-          kospi: krxData.kospiData,
-          trading: krxData.kospiInvestorTrading, // Use KOSPI trading data as primary
-          options: null // Options not supported yet
-        }
-        
-        await DatabaseService.saveKRXData(targetDate, transformedKrxData)
+        // KrxCollectionService already handles saving to database
+        const krxResult = await KrxCollectionService.collectDailyMarketData(targetDate, true)
         results.push({
           source: 'KRX',
           status: 'SUCCESS',
@@ -199,7 +193,16 @@ router.post('/admin/collect-data', requireAdmin, requirePermission('write'), asy
       try {
         console.log(`[API] BOK 데이터 수집 시작: ${targetDate}`)
         const bokData = await BOKCollector.collectDailyData(targetDate)
-        await DatabaseService.saveBOKData(targetDate, bokData)
+        // BOK data should be saved using MarketDataRepository
+        if (bokData.interestRates) {
+          await MarketDataRepository.saveInterestRateData(bokData.interestRates)
+        }
+        if (bokData.exchangeRates) {
+          await MarketDataRepository.saveExchangeRateData(bokData.exchangeRates)
+        }
+        if (bokData.economicIndicators) {
+          await MarketDataRepository.saveEconomicIndicatorData(bokData.economicIndicators)
+        }
         results.push({
           source: 'BOK',
           status: 'SUCCESS',
@@ -253,7 +256,7 @@ router.post('/admin/calculate-index', requireAdmin, requirePermission('write'), 
       })
     }
 
-    await DatabaseService.saveFearGreedIndex(result)
+    await FearGreedIndexRepository.saveFearGreedIndex(result)
 
     return res.json({
       success: true,

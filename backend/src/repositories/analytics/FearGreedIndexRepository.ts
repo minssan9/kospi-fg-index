@@ -285,8 +285,8 @@ export class FearGreedIndexRepository extends BaseRepository {
         const average = slice.reduce((sum, item) => sum + item.value, 0) / days
         
         movingAverages.push({
-          date: data[i].date,
-          value: data[i].value,
+          date: data[i]?.date!,
+          value: data[i]?.value!,
           movingAverage: Math.round(average * 100) / 100
         })
       }
@@ -325,12 +325,12 @@ export class FearGreedIndexRepository extends BaseRepository {
       // 일간 변화량 계산
       const dailyChanges = []
       for (let i = 1; i < data.length; i++) {
-        const change = data[i].value - data[i-1].value
+        const change = data[i]?.value! - data[i-1]?.value!
         dailyChanges.push({
-          date: data[i].date,
+          date: data[i]?.date!,
           change,
-          previousValue: data[i-1].value,
-          currentValue: data[i].value
+          previousValue: data[i-1]?.value!,
+          currentValue: data[i]?.value!
         })
       }
 
@@ -342,7 +342,7 @@ export class FearGreedIndexRepository extends BaseRepository {
 
       // 레벨 변화 횟수
       const levelChanges = data.slice(1).reduce((count, current, index) => {
-        return current.level !== data[index].level ? count + 1 : count
+        return current.level !== data[index]?.level ? count + 1 : count
       }, 0)
 
       return {
