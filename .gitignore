@@ -40,3 +40,4 @@ dev-debug.log
 # tasks/ 
 .cursor/mcp.json
 .mcp.json
+.DS_Store

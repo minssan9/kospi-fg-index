@@ -1,0 +1,273 @@
+name: CI/CD Production Deployment
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository }}-backend
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}-frontend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    # Backend Tests
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        npm ci
+    
+    - name: Run Backend Linting
+      run: |
+        cd backend
+        npm run lint
+    
+    - name: Run Backend Tests
+      run: |
+        cd backend
+        npm test
+      env:
+        NODE_ENV: test
+        DATABASE_URL: "mysql://test:test@localhost:3306/test_db"
+    
+    # Frontend Tests
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Run Frontend Linting
+      run: |
+        cd frontend
+        npm run lint
+    
+    - name: Run Frontend Tests
+      run: |
+        cd frontend
+        npm test
+    
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm run build
+
+  security:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Snyk Security Scan
+      uses: snyk/actions/node@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Extract metadata for Backend
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Extract metadata for Frontend
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Backend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push Frontend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup SSH Key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Deploy to Production VM
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+          set -e
+          
+          # Navigate to application directory
+          cd /opt/fg-index
+          
+          # Pull latest code
+          git pull origin main
+          
+          # Create production environment file
+          cat > .env.production << EOL
+          NODE_ENV=production
+          PORT=3000
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          KIS_API_KEY=${{ secrets.KIS_API_KEY }}
+          KIS_API_SECRET=${{ secrets.KIS_API_SECRET }}
+          BOK_API_KEY=${{ secrets.BOK_API_KEY }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+          EOL
+          
+          # Login to GitHub Container Registry
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # Pull latest images
+          docker-compose -f docker-compose.prod.yml pull
+          
+          # Deploy with zero downtime
+          docker-compose -f docker-compose.prod.yml up -d --build --remove-orphans
+          
+          # Wait for services to be healthy
+          echo "Waiting for services to be healthy..."
+          sleep 30
+          
+          # Health check
+          if curl -f http://localhost/health && curl -f http://localhost/api/health; then
+            echo "✅ Deployment successful!"
+            
+            # Clean up old images
+            docker image prune -f
+            
+            # Send success notification
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"🚀 Production deployment successful for investand.voyagerss.com"}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }}
+          else
+            echo "❌ Health check failed, rolling back..."
+            docker-compose -f docker-compose.prod.yml down
+            exit 1
+          fi
+        EOF
+    
+    - name: Verify SSL Certificate
+      run: |
+        ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+          # Check SSL certificate status
+          if certbot certificates | grep -q "investand.voyagerss.com"; then
+            echo "✅ SSL certificate is active"
+          else
+            echo "⚠️  SSL certificate needs attention"
+            # Attempt to obtain certificate
+            sudo certbot --nginx -d investand.voyagerss.com --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL }}
+          fi
+        EOF
+    
+    - name: Post-deployment Health Check
+      run: |
+        sleep 10
+        if curl -f https://investand.voyagerss.com/health; then
+          echo "✅ Production site is healthy"
+        else
+          echo "❌ Production site health check failed"
+          exit 1
+        fi
+    
+    - name: Notify Deployment Status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          STATUS="✅ SUCCESS"
+          COLOR="good"
+        else
+          STATUS="❌ FAILED"
+          COLOR="danger"
+        fi
+        
+        curl -X POST -H 'Content-type: application/json' \
+          --data "{\"text\":\"$STATUS: Production deployment for commit ${{ github.sha }} - investand.voyagerss.com\", \"color\":\"$COLOR\"}" \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+    
+    steps:
+    - name: Cleanup old container images
+      run: |
+        ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+          # Clean up dangling images and unused containers
+          docker system prune -f
+          
+          # Remove old images (keep last 3 versions)
+          docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}" | \
+            grep -E "(backend|frontend)" | \
+            tail -n +4 | \
+            awk '{print $1":"$2}' | \
+            xargs -r docker rmi || true
+        EOF

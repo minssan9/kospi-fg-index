@@ -1,0 +1,276 @@
+version: '3.8'
+
+services:
+  # Production Nginx Reverse Proxy with SSL
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: fg-nginx-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx:/var/log/nginx
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - fg-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "com.docker.compose.service=nginx"
+      - "com.docker.compose.project=fg-index-prod"
+
+  # Frontend (Vue.js Production Build)
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}-frontend:latest
+    container_name: fg-frontend-prod
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ./logs/frontend:/var/log/nginx
+    networks:
+      - fg-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    labels:
+      - "com.docker.compose.service=frontend"
+      - "com.docker.compose.project=fg-index-prod"
+
+  # Backend API Server
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}-backend:latest
+    container_name: fg-backend-prod
+    restart: unless-stopped
+    expose:
+      - "3000"
+    env_file:
+      - .env.production
+    volumes:
+      - ./logs/backend:/app/logs
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fg-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    labels:
+      - "com.docker.compose.service=backend"
+      - "com.docker.compose.project=fg-index-prod"
+
+  # Data Collection Scheduler
+  scheduler:
+    image: ghcr.io/${GITHUB_REPOSITORY}-backend:latest
+    container_name: fg-scheduler-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      - ./logs/scheduler:/app/logs
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fg-network
+    command: ["npm", "run", "start:scheduler"]
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f scheduler || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    labels:
+      - "com.docker.compose.service=scheduler"
+      - "com.docker.compose.project=fg-index-prod"
+
+  # PostgreSQL Database
+  database:
+    image: postgres:15-alpine
+    container_name: fg-database-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-fg_index_prod}
+      POSTGRES_USER: ${DATABASE_USER:-fg_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./logs/postgres:/var/log/postgresql
+      - ./scripts/db-backup.sh:/usr/local/bin/db-backup.sh:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - fg-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-fg_user} -d ${DATABASE_NAME:-fg_index_prod}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    labels:
+      - "com.docker.compose.service=database"
+      - "com.docker.compose.project=fg-index-prod"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: fg-redis-prod
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+      - ./logs/redis:/var/log/redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - fg-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "com.docker.compose.service=redis"
+      - "com.docker.compose.project=fg-index-prod"
+
+  # SSL Certificate Management with Certbot
+  certbot:
+    image: certbot/certbot:latest
+    container_name: fg-certbot-prod
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - nginx
+    command: certonly --webroot --webroot-path=/var/www/html --email ${CERTBOT_EMAIL} --agree-tos --no-eff-email --keep-until-expiring -d investand.voyagerss.com
+    labels:
+      - "com.docker.compose.service=certbot"
+      - "com.docker.compose.project=fg-index-prod"
+
+  # Log Management (Optional - for centralized logging)
+  logrotate:
+    image: alpine:latest
+    container_name: fg-logrotate-prod
+    restart: unless-stopped
+    volumes:
+      - ./logs:/logs
+      - ./scripts/logrotate.conf:/etc/logrotate.conf:ro
+    command: |
+      sh -c '
+        while true; do
+          logrotate -f /etc/logrotate.conf
+          sleep 86400  # Run once per day
+        done
+      '
+    labels:
+      - "com.docker.compose.service=logrotate"
+      - "com.docker.compose.project=fg-index-prod"
+
+# Persistent Volumes
+volumes:
+  postgres_data:
+    driver: local
+    labels:
+      - "com.docker.compose.volume=postgres_data"
+      - "com.docker.compose.project=fg-index-prod"
+  
+  redis_data:
+    driver: local
+    labels:
+      - "com.docker.compose.volume=redis_data"  
+      - "com.docker.compose.project=fg-index-prod"
+  
+  certbot-etc:
+    driver: local
+    labels:
+      - "com.docker.compose.volume=certbot-etc"
+      - "com.docker.compose.project=fg-index-prod"
+  
+  certbot-var:
+    driver: local
+    labels:
+      - "com.docker.compose.volume=certbot-var"
+      - "com.docker.compose.project=fg-index-prod"
+  
+  web-root:
+    driver: local
+    labels:
+      - "com.docker.compose.volume=web-root"
+      - "com.docker.compose.project=fg-index-prod"
+
+# Networks
+networks:
+  fg-network:
+    driver: bridge
+    name: fg-prod-network
+    labels:
+      - "com.docker.compose.network=fg-network"
+      - "com.docker.compose.project=fg-index-prod"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
