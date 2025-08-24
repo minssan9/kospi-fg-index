@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Configuration
-APP_DIR="/opt/fg-index"
+APP_DIR="/home/min/fg-index"
 LOG_FILE="$APP_DIR/logs/monitor.log"
 ALERT_LOG="$APP_DIR/logs/alerts.log"
 DOMAIN="investand.voyagerss.com"

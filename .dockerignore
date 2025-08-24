@@ -1,0 +1,102 @@
+# Git
+.git
+.gitignore
+.gitattributes
+.gitmodules
+
+# Documentation
+*.md
+README*
+CHANGELOG*
+CONTRIBUTORS*
+CONTRIBUTING*
+LICENSE*
+HISTORY*
+docs/
+.docs/
+
+# Logs & Runtime
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Environment
+.env*
+!.env.example
+!.env.template
+
+# Dependencies (will be installed in container)
+node_modules/
+*/node_modules/
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+*.test.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.cache/
+
+# OS generated files
+.DS_Store?
+ehthumbs.db
+Icon?
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# CI/CD
+.github/
+.circleci/
+.travis.yml
+.gitlab-ci.yml
+Jenkinsfile
+
+# Cloud & Deployment
+.gcp/
+.aws/
+terraform/
+k8s/
+helm/
+
+# Scripts (some may contain sensitive info)
+scripts/
+!scripts/healthcheck.js
+
+# Backup & Data
+backups/
+data/
+*.sql
+*.dump
+
+# Monitoring
+monitoring/
+grafana/
+prometheus/

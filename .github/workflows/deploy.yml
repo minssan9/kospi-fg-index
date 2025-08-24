@@ -44,7 +44,7 @@ jobs:
         npm test
       env:
         NODE_ENV: test
-        DATABASE_URL: "mysql://test:test@localhost:3306/test_db"
+        DATABASE_URL: "postgresql://test:test@localhost:5432/test_db"
     
     # Frontend Tests
     - name: Install Frontend Dependencies
@@ -70,9 +70,25 @@ jobs:
   security:
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      security-events: write
+      contents: read
     
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
     
     - name: Run Snyk Security Scan
       uses: snyk/actions/node@master
@@ -132,6 +148,7 @@ jobs:
         labels: ${{ steps.meta-backend.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        platforms: linux/amd64
     
     - name: Build and push Frontend Docker image
       uses: docker/build-push-action@v5
@@ -142,6 +159,7 @@ jobs:
         labels: ${{ steps.meta-frontend.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        platforms: linux/amd64
 
   deploy:
     runs-on: ubuntu-latest
@@ -165,7 +183,7 @@ jobs:
           set -e
           
           # Navigate to application directory
-          cd /opt/fg-index
+          cd /home/min/fg-index
           
           # Pull latest code
           git pull origin main
@@ -175,42 +193,72 @@ jobs:
           NODE_ENV=production
           PORT=3000
           DATABASE_URL=${{ secrets.DATABASE_URL }}
+          DATABASE_NAME=${{ secrets.DATABASE_NAME }}
+          DATABASE_USER=${{ secrets.DATABASE_USER }}
+          DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}
           KIS_API_KEY=${{ secrets.KIS_API_KEY }}
           KIS_API_SECRET=${{ secrets.KIS_API_SECRET }}
           BOK_API_KEY=${{ secrets.BOK_API_KEY }}
+          DART_API_KEY=${{ secrets.DART_API_KEY }}
           REDIS_URL=${{ secrets.REDIS_URL }}
+          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+          CERTBOT_EMAIL=${{ secrets.CERTBOT_EMAIL }}
+          SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}
           EOL
           
           # Login to GitHub Container Registry
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           
+          # Backup current state
+          if docker ps -q --filter "name=fg-"; then
+            echo "Creating backup..."
+            docker exec fg-database-prod pg_dump -U ${{ secrets.DATABASE_USER }} -d ${{ secrets.DATABASE_NAME }} | gzip > "backups/pre_deploy_$(date +%Y%m%d_%H%M%S).sql.gz" || echo "Backup failed"
+          fi
+          
           # Pull latest images
           docker-compose -f docker-compose.prod.yml pull
           
-          # Deploy with zero downtime
-          docker-compose -f docker-compose.prod.yml up -d --build --remove-orphans
+          # Deploy with zero downtime using blue-green strategy
+          if docker ps -q --filter "name=fg-"; then
+            echo "Performing blue-green deployment..."
+            ./scripts/deploy.sh --skip-backup
+          else
+            echo "Fresh deployment..."
+            docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+          fi
           
           # Wait for services to be healthy
           echo "Waiting for services to be healthy..."
-          sleep 30
+          sleep 45
           
-          # Health check
-          if curl -f http://localhost/health && curl -f http://localhost/api/health; then
-            echo "✅ Deployment successful!"
-            
-            # Clean up old images
-            docker image prune -f
-            
-            # Send success notification
+          # Health check with retries
+          for i in {1..10}; do
+            if curl -f http://localhost/health && curl -f http://localhost/api/health; then
+              echo "✅ Deployment successful!"
+              break
+            elif [ $i -eq 10 ]; then
+              echo "❌ Health check failed after 10 attempts, rolling back..."
+              if [ -f "backups/pre_deploy_$(date +%Y%m%d_*)*.sql.gz" ]; then
+                echo "Rolling back..."
+                ./scripts/deploy.sh --rollback
+              fi
+              exit 1
+            else
+              echo "Health check $i/10 failed, retrying in 10s..."
+              sleep 10
+            fi
+          done
+          
+          # Clean up old images
+          docker image prune -f
+          
+          # Send success notification
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
             curl -X POST -H 'Content-type: application/json' \
-              --data '{"text":"🚀 Production deployment successful for investand.voyagerss.com"}' \
+              --data '{"text":"🚀 Production deployment successful for investand.voyagerss.com - commit ${{ github.sha }}"}' \
               ${{ secrets.SLACK_WEBHOOK_URL }}
-          else
-            echo "❌ Health check failed, rolling back..."
-            docker-compose -f docker-compose.prod.yml down
-            exit 1
           fi
         EOF
     
@@ -220,6 +268,13 @@ jobs:
           # Check SSL certificate status
           if certbot certificates | grep -q "investand.voyagerss.com"; then
             echo "✅ SSL certificate is active"
+            # Check expiry
+            days_left=$(openssl x509 -in /etc/letsencrypt/live/investand.voyagerss.com/fullchain.pem -text -noout | grep "Not After" | awk -F': ' '{print $2}' | xargs -I{} date -d "{}" +%s)
+            current=$(date +%s)
+            days=$(( (days_left - current) / 86400 ))
+            if [ $days -lt 30 ]; then
+              echo "⚠️  SSL certificate expires in $days days"
+            fi
           else
             echo "⚠️  SSL certificate needs attention"
             # Attempt to obtain certificate
@@ -229,13 +284,20 @@ jobs:
     
     - name: Post-deployment Health Check
       run: |
-        sleep 10
-        if curl -f https://investand.voyagerss.com/health; then
-          echo "✅ Production site is healthy"
-        else
-          echo "❌ Production site health check failed"
-          exit 1
-        fi
+        sleep 15
+        max_attempts=5
+        for i in $(seq 1 $max_attempts); do
+          if curl -f https://investand.voyagerss.com/health; then
+            echo "✅ Production site is healthy"
+            break
+          elif [ $i -eq $max_attempts ]; then
+            echo "❌ Production site health check failed after $max_attempts attempts"
+            exit 1
+          else
+            echo "Health check $i/$max_attempts failed, retrying in 10s..."
+            sleep 10
+          fi
+        done
     
     - name: Notify Deployment Status
       if: always()
@@ -243,14 +305,33 @@ jobs:
         if [ "${{ job.status }}" == "success" ]; then
           STATUS="✅ SUCCESS"
           COLOR="good"
+          MESSAGE="Production deployment successful for commit ${{ github.sha }}"
         else
           STATUS="❌ FAILED"
-          COLOR="danger"
+          COLOR="danger" 
+          MESSAGE="Production deployment FAILED for commit ${{ github.sha }}"
         fi
         
-        curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\"$STATUS: Production deployment for commit ${{ github.sha }} - investand.voyagerss.com\", \"color\":\"$COLOR\"}" \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+        if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"$STATUS: $MESSAGE - investand.voyagerss.com\", \"color\":\"$COLOR\"}" \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+        fi
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Run production security scan
+      run: |
+        # OWASP ZAP baseline scan
+        docker run -t owasp/zap2docker-stable zap-baseline.py \
+          -t https://investand.voyagerss.com -J zap-report.json || true
+        
+        # SSL Labs scan simulation
+        curl -s "https://api.ssllabs.com/api/v3/analyze?host=investand.voyagerss.com&publish=off&all=done" || true
 
   cleanup:
     runs-on: ubuntu-latest
@@ -264,10 +345,16 @@ jobs:
           # Clean up dangling images and unused containers
           docker system prune -f
           
-          # Remove old images (keep last 3 versions)
-          docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}" | \
-            grep -E "(backend|frontend)" | \
-            tail -n +4 | \
-            awk '{print $1":"$2}' | \
-            xargs -r docker rmi || true
+          # Remove old images (keep last 5 versions)
+          for service in backend frontend; do
+            docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}" | \
+              grep "ghcr.io/minssan9/kospi-fg-index-$service" | \
+              tail -n +6 | \
+              awk '{print $1":"$2}' | \
+              xargs -r docker rmi || true
+          done
+          
+          # Clean up old backups (keep last 7)
+          find /home/min/fg-index/backups -name "pre_deploy_*.sql.gz" -type f | \
+            sort -r | tail -n +8 | xargs -r rm -f || true
         EOF

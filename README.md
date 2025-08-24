@@ -104,13 +104,25 @@ cd kospi-fg-index
 
 ### 2. 환경 변수 설정
 
+#### 자동 설정 (권장)
 ```bash
-# 환경 변수 파일 복사
-cp .env.example .env
-
-# 필요한 API 키 및 설정 입력
-nano .env
+# 자동 환경 설정 스크립트 실행
+./scripts/setup-env.sh
 ```
+
+#### 수동 설정
+```bash
+# Backend 환경 변수 템플릿 복사
+cp backend/env.template backend/.env
+
+# Frontend 환경 변수 템플릿 복사
+cp frontend/env.template frontend/.env
+
+# API 키 및 데이터베이스 설정 입력
+nano backend/.env
+```
+
+🔗 **자세한 설정 가이드**: [LOCAL_ENV_SETUP.md](LOCAL_ENV_SETUP.md)
 
 ### 3. 데이터베이스 설정
 
@@ -245,23 +257,38 @@ GET /api/market/derivatives         # 파생상품 데이터
 
 ### 환경 변수
 
+#### 필수 변수
 ```env
 # Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/feargreed
+DATABASE_URL=postgresql://fg_user:password@localhost:5432/fg_index_dev
 
-# External APIs
-KRX_API_KEY=your_krx_api_key
-BOK_API_KEY=your_bok_api_key
+# Essential APIs
+DART_API_KEY=your_dart_api_key
 
-# Google AdSense
-GOOGLE_ADSENSE_CLIENT=ca-pub-xxxxxxxxx
+# Security
+JWT_SECRET=your_jwt_secret_minimum_32_characters
+ADMIN_PASSWORD=your_secure_admin_password
 
 # Application
 NODE_ENV=development
 PORT=3000
-FRONTEND_URL=http://localhost:5000
-JWT_SECRET=your_jwt_secret
 ```
+
+#### 선택적 변수
+```env
+# Korean Financial APIs
+KIS_API_KEY=your_korea_investment_api_key
+KIS_API_SECRET=your_korea_investment_api_secret
+BOK_API_KEY=your_bank_of_korea_api_key
+
+# Cache (Optional)
+REDIS_URL=redis://:password@localhost:6379/0
+
+# Notifications (Optional)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK
+```
+
+> 📋 **전체 변수 목록 및 설정 방법**: [LOCAL_ENV_SETUP.md](LOCAL_ENV_SETUP.md)
 
 ## 🧪 테스트
 

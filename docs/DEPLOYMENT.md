@@ -56,7 +56,8 @@ Connect to your VM and run the automated setup script:
 ```bash
 # Download and run the setup script
 sudo dnf update -y && sudo dnf install -y curl
-curl -fsSL https://github.com/minssan9/kospi-fg-index/main/scripts/setup-vm.sh -o setup-vm.sh
+curl -fsSL https://github.com/minssan9/kospi-fg-index/tree/main/scripts/setup-vm.sh -o setup-vm.sh
+cd /home/min/fg-index/scripts
 chmod +x setup-vm.sh
 sudo ./setup-vm.sh
 ```
@@ -80,7 +81,7 @@ The setup script will:
 
 2. **Clone Repository**:
    ```bash
-   sudo -u min git clone git@github.com:min/kospi-fg-index.git /home/min/fg-index
+   sudo -u min git clone git@github.com/minssan9/kospi-fg-index.git /home/min/fg-index
    cd /home/min/fg-index
    ```
 
@@ -104,7 +105,7 @@ sudo -u min ./scripts/deploy.sh
 
 Configure the following secrets in your GitHub repository (Settings → Secrets and variables → Actions):
 
-### Required Secrets
+### Required Secrets (GitHub Actions)
 
 ```yaml
 # VM Access
@@ -117,86 +118,68 @@ VM_SSH_KEY: |
 
 # Container Registry
 GITHUB_TOKEN: "ghp_your_github_token_here"
+```
+
+### Production Environment File (.env.production)
+
+Create `.env.production` file on your server with the following configuration:
+
+#### Required Variables
+```env
+# Application
+NODE_ENV=production
+PORT=3000
+LOG_LEVEL=info
 
 # Database
-DATABASE_URL: "postgresql://fg_user:secure_password@database:5432/fg_index_prod"
-DATABASE_PASSWORD: "secure_database_password"
-
-# Redis
-REDIS_URL: "redis://:secure_redis_password@redis:6379/0"
-REDIS_PASSWORD: "secure_redis_password"
-
-# API Keys
-KIS_API_KEY: "your_korea_investment_api_key"
-KIS_API_SECRET: "your_korea_investment_api_secret"
-BOK_API_KEY: "your_bank_of_korea_api_key"
-DART_API_KEY: "your_dart_api_key"
-
-# Security
-JWT_SECRET: "your_jwt_secret_min_32_chars_long"
-ADMIN_PASSWORD: "secure_admin_password"
-
-# SSL Configuration
-CERTBOT_EMAIL: "admin@investand.voyagerss.com"
-
-# Notifications (Optional)
-SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
-```
-
-### Optional Secrets
-
-```yaml
-# Monitoring
-ALERT_EMAIL: "alerts@investand.voyagerss.com"
-
-# S3 Backup (Optional)
-BACKUP_S3_BUCKET: "fg-index-backups"
-BACKUP_S3_ACCESS_KEY: "your_s3_access_key"
-BACKUP_S3_SECRET_KEY: "your_s3_secret_key"
-
-# External Services
-UPBIT_ACCESS_KEY: "your_upbit_access_key"
-UPBIT_SECRET_KEY: "your_upbit_secret_key"
-```
-
-## Environment Configuration
-
-The `.env.production` file contains all environment variables. Key configurations:
-
-### Database Settings
-```env
-DATABASE_URL=postgresql://fg_user:YOUR_PASSWORD@database:5432/fg_index_prod
+DATABASE_URL=postgresql://fg_user:secure_password@database:5432/fg_index_prod
 DATABASE_NAME=fg_index_prod
 DATABASE_USER=fg_user
-DATABASE_PASSWORD=YOUR_SECURE_PASSWORD
-```
+DATABASE_PASSWORD=secure_database_password
 
-### API Configuration
-```env
-# Korean market data
-KIS_API_KEY=YOUR_KIS_API_KEY
-KIS_API_SECRET=YOUR_KIS_API_SECRET
-BOK_API_KEY=YOUR_BOK_API_KEY
-DART_API_KEY=YOUR_DART_API_KEY
+# Database connections
+DB_CONNECTION_POOL_MIN=2
+DB_CONNECTION_POOL_MAX=10
+DB_CONNECTION_TIMEOUT=30000
+DB_QUERY_TIMEOUT=10000
+
+# Redis
+REDIS_URL=redis://:secure_redis_password@redis:6379/0
+REDIS_PASSWORD=secure_redis_password
+
+# API Keys
+KIS_API_KEY=your_korea_investment_api_key
+KIS_API_SECRET=your_korea_investment_api_secret
+BOK_API_KEY=your_bank_of_korea_api_key
+DART_API_KEY=your_dart_api_key
 
 # Security
-JWT_SECRET=YOUR_JWT_SECRET_MINIMUM_32_CHARACTERS
-ADMIN_PASSWORD=YOUR_SECURE_ADMIN_PASSWORD
-```
+JWT_SECRET=your_jwt_secret_min_32_chars_long
+ADMIN_PASSWORD=secure_admin_password
 
-### Performance Tuning
-```env
-# Database connections
-DB_POOL_MIN=2
-DB_POOL_MAX=10
-
-# Cache settings
+# Performance Tuning
 CACHE_TTL=3600
-REDIS_PASSWORD=YOUR_REDIS_PASSWORD
-
-# Rate limiting
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
+
+# SSL Configuration
+CERTBOT_EMAIL=admin@investand.voyagerss.com
+```
+
+#### Optional Variables
+```env
+# Monitoring & Notifications
+ALERT_EMAIL=alerts@investand.voyagerss.com
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+
+# S3 Backup (Optional)
+BACKUP_S3_BUCKET=fg-index-backups
+BACKUP_S3_ACCESS_KEY=your_s3_access_key
+BACKUP_S3_SECRET_KEY=your_s3_secret_key
+
+# External Services
+UPBIT_ACCESS_KEY=your_upbit_access_key
+UPBIT_SECRET_KEY=your_upbit_secret_key
 ```
 
 ## Deployment Process

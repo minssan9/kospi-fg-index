@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Configuration
-APP_DIR="/opt/fg-index"
+APP_DIR="/home/min/fg-index"
 BACKUP_DIR="$APP_DIR/backups"
 LOG_FILE="$APP_DIR/logs/backup.log"
 DATE=$(date +%Y%m%d_%H%M%S)

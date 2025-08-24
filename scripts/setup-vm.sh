@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Production VM Setup Script for Fear & Greed Index
-# Supports Ubuntu 22.04 LTS on Google Cloud Platform
+# Supports Rocky Linux 9/8 on Google Cloud Platform
 # Usage: chmod +x setup-vm.sh && sudo ./setup-vm.sh
 
 set -euo pipefail
@@ -14,8 +14,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-APP_USER="fg-app"
-APP_DIR="/opt/fg-index"
+APP_USER="min"
+APP_DIR="/home/min/fg-index"
 DOMAIN="investand.voyagerss.com"
 EMAIL="admin@${DOMAIN}"
 
@@ -47,26 +47,26 @@ check_root() {
 # Update system packages
 update_system() {
     log "Updating system packages..."
-    apt-get update -y
-    apt-get upgrade -y
-    apt-get autoremove -y
-    apt-get autoclean
+    dnf update -y
+    dnf autoremove -y
+    dnf clean all
 }
 
 # Install essential packages
 install_packages() {
     log "Installing essential packages..."
-    apt-get install -y \
+    
+    # Enable EPEL repository for additional packages
+    dnf install -y epel-release
+    
+    dnf install -y \
         curl \
         wget \
         git \
         unzip \
-        apt-transport-https \
         ca-certificates \
-        gnupg \
-        lsb-release \
-        software-properties-common \
-        ufw \
+        gnupg2 \
+        firewalld \
         fail2ban \
         htop \
         nginx \
@@ -74,8 +74,10 @@ install_packages() {
         python3-certbot-nginx \
         logrotate \
         rsync \
-        cron \
-        supervisor
+        cronie \
+        supervisor \
+        policycoreutils-python-utils \
+        selinux-policy-devel
 }
 
 # Install Docker
@@ -83,24 +85,23 @@ install_docker() {
     log "Installing Docker..."
     
     # Remove old versions
-    apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+    dnf remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine 2>/dev/null || true
     
-    # Add Docker's official GPG key
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    
-    # Add Docker repository
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+    # Add Docker CE repository
+    dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
     
     # Install Docker
-    apt-get update -y
-    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
     # Start and enable Docker
     systemctl start docker
     systemctl enable docker
     
     # Add user to docker group
-    usermod -aG docker ubuntu 2>/dev/null || warn "Could not add ubuntu user to docker group"
+    usermod -aG docker $APP_USER 2>/dev/null || warn "Could not add $APP_USER user to docker group"
+    
+    # Configure SELinux for Docker
+    setsebool -P container_manage_cgroup on
 }
 
 # Install Docker Compose (standalone)
@@ -143,33 +144,32 @@ setup_app_user() {
 
 # Configure firewall
 setup_firewall() {
-    log "Configuring UFW firewall..."
+    log "Configuring firewalld..."
     
-    # Reset UFW to defaults
-    ufw --force reset
+    # Start and enable firewalld
+    systemctl start firewalld
+    systemctl enable firewalld
     
-    # Default policies
-    ufw default deny incoming
-    ufw default allow outgoing
+    # Set default zone to public
+    firewall-cmd --set-default-zone=public
     
     # Allow SSH
-    ufw allow ssh
-    ufw allow 22/tcp
+    firewall-cmd --permanent --zone=public --add-service=ssh
     
     # Allow HTTP and HTTPS
-    ufw allow 80/tcp
-    ufw allow 443/tcp
+    firewall-cmd --permanent --zone=public --add-service=http
+    firewall-cmd --permanent --zone=public --add-service=https
     
-    # Allow internal Docker network
-    ufw allow from 172.16.0.0/12
-    ufw allow from 192.168.0.0/16
-    ufw allow from 10.0.0.0/8
+    # Allow Docker networks
+    firewall-cmd --permanent --zone=trusted --add-source=172.16.0.0/12
+    firewall-cmd --permanent --zone=trusted --add-source=192.168.0.0/16
+    firewall-cmd --permanent --zone=trusted --add-source=10.0.0.0/8
     
-    # Enable UFW
-    ufw --force enable
+    # Reload firewall rules
+    firewall-cmd --reload
     
     # Show status
-    ufw status verbose
+    firewall-cmd --list-all
 }
 
 # Configure fail2ban
@@ -181,7 +181,7 @@ setup_fail2ban() {
 bantime = 3600
 findtime = 600
 maxretry = 5
-banaction = ufw
+banaction = firewallcmd-ipset
 
 [sshd]
 enabled = true
@@ -194,20 +194,20 @@ maxretry = 3
 enabled = true
 filter = nginx-http-auth
 port = http,https
-logpath = /opt/fg-index/logs/nginx/error.log
+logpath = /home/min/fg-index/logs/nginx/error.log
 
 [nginx-req-limit]
 enabled = true
 filter = nginx-req-limit
 port = http,https
-logpath = /opt/fg-index/logs/nginx/error.log
+logpath = /home/min/fg-index/logs/nginx/error.log
 maxretry = 10
 
 [nginx-botsearch]
 enabled = true
 filter = nginx-botsearch
 port = http,https
-logpath = /opt/fg-index/logs/nginx/access.log
+logpath = /home/min/fg-index/logs/nginx/access.log
 maxretry = 2
 EOF
 
@@ -253,29 +253,29 @@ EOF
 setup_auto_updates() {
     log "Configuring automatic security updates..."
     
-    apt-get install -y unattended-upgrades apt-listchanges
+    dnf install -y dnf-automatic
     
-    cat > /etc/apt/apt.conf.d/50unattended-upgrades << EOF
-Unattended-Upgrade::Allowed-Origins {
-    "\${distro_id}:\${distro_codename}-security";
-    "\${distro_id} ESMApps:\${distro_codename}-apps-security";
-    "\${distro_id} ESM:\${distro_codename}-infra-security";
-};
+    cat > /etc/dnf/automatic.conf << EOF
+[commands]
+upgrade_type = security
+random_sleep = 3600
+network_online_timeout = 60
+download_updates = yes
+apply_updates = yes
 
-Unattended-Upgrade::AutoFixInterruptedDpkg "true";
-Unattended-Upgrade::MinimalSteps "true";
-Unattended-Upgrade::Remove-Unused-Dependencies "true";
-Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
-Unattended-Upgrade::Automatic-Reboot "false";
+[emitters]
+emit_via = stdio
+
+[command]
+command_format = "dnf -d 0 -e 0 -y --cacheonly update"
+
+[email]
+email_from = root@localhost
+email_to = root
+email_host = localhost
 EOF
 
-    cat > /etc/apt/apt.conf.d/20auto-upgrades << EOF
-APT::Periodic::Update-Package-Lists "1";
-APT::Periodic::Unattended-Upgrade "1";
-APT::Periodic::AutocleanInterval "7";
-EOF
-
-    systemctl enable unattended-upgrades
+    systemctl enable --now dnf-automatic.timer
 }
 
 # Setup monitoring scripts
@@ -467,10 +467,10 @@ setup_github_key() {
     log "Setting up GitHub deployment..."
     
     # Create SSH key for GitHub
-    if [ ! -f /home/ubuntu/.ssh/id_rsa ]; then
-        sudo -u ubuntu ssh-keygen -t rsa -b 4096 -f /home/ubuntu/.ssh/id_rsa -N ""
+    if [ ! -f /home/$APP_USER/.ssh/id_rsa ]; then
+        sudo -u $APP_USER ssh-keygen -t rsa -b 4096 -f /home/$APP_USER/.ssh/id_rsa -N ""
         info "Add this public key to your GitHub repository as a deployment key:"
-        cat /home/ubuntu/.ssh/id_rsa.pub
+        cat /home/$APP_USER/.ssh/id_rsa.pub
     fi
     
     # Clone repository if it doesn't exist

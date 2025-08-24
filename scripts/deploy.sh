@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Configuration
-APP_DIR="/opt/fg-index"
+APP_DIR="/home/min/fg-index"
 LOG_FILE="$APP_DIR/logs/deploy.log"
 COMPOSE_FILE="$APP_DIR/docker-compose.prod.yml"
 BACKUP_DIR="$APP_DIR/backups"
